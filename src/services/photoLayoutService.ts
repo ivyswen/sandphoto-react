@@ -1,13 +1,78 @@
-import { PhotoType, ContainerType } from '../types/PhotoType';
+import { PhotoType, ContainerType, BackgroundOption } from '../types/PhotoType';
 
 export class PhotoLayoutService {
   private pxPerCm = 118.11; // 300dpi = 118.11px/cm
+
+  // 检测图像是否有透明背景
+  detectTransparentBackground(image: HTMLImageElement): Promise<boolean> {
+    return new Promise((resolve) => {
+      // 创建临时Canvas来分析图像
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        resolve(false);
+        return;
+      }
+      
+      canvas.width = image.width;
+      canvas.height = image.height;
+      
+      // 绘制图像到Canvas
+      ctx.drawImage(image, 0, 0);
+      
+      // 获取图像数据
+      try {
+        const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        const data = imageData.data;
+        
+        // 检查是否有透明像素
+        // 只需要检查图像边缘和一些随机点，不需要检查所有像素
+        const checkPoints = [
+          // 检查四个角落
+          {x: 0, y: 0},
+          {x: canvas.width - 1, y: 0},
+          {x: 0, y: canvas.height - 1},
+          {x: canvas.width - 1, y: canvas.height - 1},
+          // 检查中心区域
+          {x: Math.floor(canvas.width / 2), y: Math.floor(canvas.height / 2)},
+        ];
+        
+        // 检查边缘
+        const edgePoints = 20; // 检查边缘上的点数
+        for (let i = 1; i < edgePoints; i++) {
+          checkPoints.push({x: Math.floor(canvas.width * i / edgePoints), y: 0}); // 上边缘
+          checkPoints.push({x: Math.floor(canvas.width * i / edgePoints), y: canvas.height - 1}); // 下边缘
+          checkPoints.push({x: 0, y: Math.floor(canvas.height * i / edgePoints)}); // 左边缘
+          checkPoints.push({x: canvas.width - 1, y: Math.floor(canvas.height * i / edgePoints)}); // 右边缘
+        }
+        
+        // 检查所有点
+        for (const point of checkPoints) {
+          const index = (point.y * canvas.width + point.x) * 4;
+          const alpha = data[index + 3];
+          
+          // 如果找到透明或半透明像素
+          if (alpha < 250) {
+            resolve(true);
+            return;
+          }
+        }
+        
+        resolve(false);
+      } catch (error) {
+        console.error('检测透明背景时出错:', error);
+        resolve(false);
+      }
+    });
+  }
 
   calculateOptimalLayout(
     sourceImage: HTMLImageElement,
     targetType: PhotoType,
     containerType: ContainerType,
-    lineColor: string
+    lineColor: string,
+    background?: BackgroundOption
   ): { canvas: HTMLCanvasElement; count: number } {
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
@@ -54,7 +119,7 @@ export class PhotoLayoutService {
     const startX = (canvas.width - (photosPerRow * targetWidthPx)) / 2;
     const startY = (canvas.height - (photosPerCol * targetHeightPx)) / 2;
     
-    // 绘制白色背景
+    // 绘制相纸背景（始终为白色）
     ctx.fillStyle = 'white';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     
@@ -76,8 +141,8 @@ export class PhotoLayoutService {
         tempCanvas.width = targetWidthPx;
         tempCanvas.height = targetHeightPx;
         
-        // 在临时画布上绘制并缩放照片
-        tempCtx.fillStyle = 'white';
+        // 先设置并填充背景颜色
+        tempCtx.fillStyle = background ? background.color : 'white';
         tempCtx.fillRect(0, 0, targetWidthPx, targetHeightPx);
         
         // 计算源图像的裁剪区域，保持宽高比
@@ -86,12 +151,14 @@ export class PhotoLayoutService {
         const sourceWidth = sourceImage.width;
         const sourceHeight = sourceImage.height;
         
-        // 绘制照片到临时画布
+        // 在背景上绘制照片
+        tempCtx.globalCompositeOperation = 'source-over';
         tempCtx.drawImage(
           sourceImage,
           sourceX, sourceY, sourceWidth, sourceHeight,
           0, 0, targetWidthPx, targetHeightPx
         );
+        tempCtx.globalCompositeOperation = 'source-over';
         
         // 将临时画布的内容绘制到主画布
         ctx.drawImage(tempCanvas, x, y);

@@ -2,10 +2,11 @@ import React, { useState, useEffect } from 'react';
 import { PhotoUploader } from './components/PhotoUploader';
 import { SizeSelector } from './components/SizeSelector';
 import { LineColorSelector } from './components/LineColorSelector';
+import { BackgroundSelector } from './components/BackgroundSelector';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ImageCropper } from './components/ImageCropper';
-import { PhotoType, ContainerType, AppState } from './types/PhotoType';
+import { PhotoType, ContainerType, AppState, BackgroundOption } from './types/PhotoType';
 import { Image as ImageIcon, Download, Loader2, RotateCw } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
 import { Toaster, toast } from 'react-hot-toast';
@@ -77,6 +78,18 @@ const PaperOrientationIcon: React.FC<{
   );
 };
 
+// 预设背景选项
+const backgroundOptions: BackgroundOption[] = [
+  { id: 'white', name: '白色', color: '#FFFFFF' },
+  { id: 'blue', name: '蓝色', color: '#87CEEB' },
+  { id: 'red', name: '红色', color: '#FFCCCB' },
+  { id: 'gray', name: '灰色', color: '#D3D3D3' },
+  { id: 'beige', name: '米色', color: '#F5F5DC' },
+  { id: 'lightblue', name: '淡蓝', color: '#ADD8E6' },
+  { id: 'green', name: '绿色', color: '#90EE90' },
+  { id: 'pink', name: '粉色', color: '#FFC0CB' }
+];
+
 function App() {
   const [state, setState] = useState<AppState>({
     selectedPhotoType: null,
@@ -90,7 +103,9 @@ function App() {
     isContainerRotated: false,
     showCropper: false,
     originalImageUrl: null,
-    croppedImageUrl: null
+    croppedImageUrl: null,
+    hasTransparentBackground: false,
+    selectedBackground: backgroundOptions[0]
   });
 
   const [photoTypes, setPhotoTypes] = useState<PhotoType[]>([]);
@@ -136,12 +151,39 @@ function App() {
         previewUrl,
         originalImageUrl: previewUrl,
         processedImageUrl: null,
-        error: null
+        error: null,
+        hasTransparentBackground: false // 重置透明背景状态
       }));
       
-      // 如果已选择了照片类型，检查图片比例是否需要裁剪
-      if (state.selectedPhotoType) {
-        checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+      // 检查图片是否有透明背景（仅PNG格式）
+      if (file.type === 'image/png') {
+        const img = new Image();
+        img.onload = async () => {
+          try {
+            const hasTransparent = await photoLayoutService.detectTransparentBackground(img);
+            setState(prev => ({
+              ...prev,
+              hasTransparentBackground: hasTransparent
+            }));
+            
+            if (hasTransparent) {
+              toast.success('检测到透明背景，您可以选择预设背景颜色');
+            }
+          } catch (error) {
+            console.error('检测透明背景失败:', error);
+          }
+          
+          // 如果已选择了照片类型，检查图片比例是否需要裁剪
+          if (state.selectedPhotoType) {
+            checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+          }
+        };
+        img.src = previewUrl;
+      } else {
+        // 如果不是PNG，直接检查比例
+        if (state.selectedPhotoType) {
+          checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+        }
       }
     }
   };
@@ -320,8 +362,21 @@ function App() {
     }
   };
 
+  const handleBackgroundChange = (backgroundId: string) => {
+    const selectedBackground = backgroundOptions.find(bg => bg.id === backgroundId) || null;
+    setState(prev => ({
+      ...prev,
+      selectedBackground,
+      processedImageUrl: null // 清除之前的排版结果，需要重新生成
+    }));
+    
+    if (selectedBackground) {
+      toast.success(`已选择${selectedBackground.name}背景`);
+    }
+  };
+
   const handleGenerateLayout = async () => {
-    const { selectedPhotoType, lineColor, uploadedImage, previewUrl } = state;
+    const { selectedPhotoType, lineColor, uploadedImage, previewUrl, hasTransparentBackground, selectedBackground } = state;
     const selectedContainerType = getCurrentContainerType();
     
     if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
@@ -348,11 +403,15 @@ function App() {
       const image = await loadImage();
       
       try {
+        // 如果有透明背景且选择了背景颜色，则传入背景选项
+        const background = hasTransparentBackground ? selectedBackground : null;
+        
         const { canvas, count } = photoLayoutService.calculateOptimalLayout(
           image,
           selectedPhotoType,
           selectedContainerType,
-          lineColor
+          lineColor,
+          background
         );
         
         const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
@@ -475,6 +534,15 @@ function App() {
                 value={state.lineColor}
                 onChange={handleColorChange}
               />
+              
+              {state.hasTransparentBackground && (
+                <BackgroundSelector
+                  options={backgroundOptions}
+                  value={state.selectedBackground?.id || null}
+                  onChange={handleBackgroundChange}
+                  disabled={state.isProcessing}
+                />
+              )}
 
               <PhotoUploader onUpload={handleImageUpload} />
 

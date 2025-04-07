@@ -13,6 +13,12 @@ export interface ContainerType {
   heightCm: number;
 }
 
+export interface BackgroundOption {
+  id: string;
+  name: string;
+  color: string;
+}
+
 export interface AppState {
   isContainerRotated: boolean;
   selectedPhotoType: PhotoType | null;
@@ -26,4 +32,6 @@ export interface AppState {
   showCropper: boolean;
   originalImageUrl: string | null;
   croppedImageUrl: string | null;
+  hasTransparentBackground: boolean;
+  selectedBackground: BackgroundOption | null;
 }
