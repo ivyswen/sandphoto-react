@@ -23,4 +23,7 @@ export interface AppState {
   processedImageUrl: string | null;
   isProcessing: boolean;
   error: string | null;
+  showCropper: boolean;
+  originalImageUrl: string | null;
+  croppedImageUrl: string | null;
 }

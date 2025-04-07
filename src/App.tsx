@@ -4,6 +4,7 @@ import { SizeSelector } from './components/SizeSelector';
 import { LineColorSelector } from './components/LineColorSelector';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
+import { ImageCropper } from './components/ImageCropper';
 import { PhotoType, ContainerType, AppState } from './types/PhotoType';
 import { Image as ImageIcon, Download, Loader2, RotateCw } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
@@ -86,7 +87,10 @@ function App() {
     processedImageUrl: null,
     isProcessing: false,
     error: null,
-    isContainerRotated: false
+    isContainerRotated: false,
+    showCropper: false,
+    originalImageUrl: null,
+    croppedImageUrl: null
   });
 
   const [photoTypes, setPhotoTypes] = useState<PhotoType[]>([]);
@@ -124,14 +128,41 @@ function App() {
   const handleImageUpload = (files: File[]) => {
     if (files && files[0]) {
       const file = files[0];
+      const previewUrl = URL.createObjectURL(file);
+      
       setState(prev => ({
         ...prev,
         uploadedImage: file,
-        previewUrl: URL.createObjectURL(file),
+        previewUrl,
+        originalImageUrl: previewUrl,
         processedImageUrl: null,
         error: null
       }));
+      
+      // 如果已选择了照片类型，检查图片比例是否需要裁剪
+      if (state.selectedPhotoType) {
+        checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+      }
     }
+  };
+  
+  // 检查图片比例是否与所选证件照比例匹配
+  const checkImageAspectRatio = (imageUrl: string, photoType: PhotoType) => {
+    const img = new Image();
+    img.onload = () => {
+      const sourceAspectRatio = img.width / img.height;
+      const targetAspectRatio = photoType.widthCm / photoType.heightCm;
+      
+      // 如果比例差异超过阈值，显示裁剪界面
+      if (Math.abs(sourceAspectRatio - targetAspectRatio) > 0.01) {
+        setState(prev => ({
+          ...prev,
+          showCropper: true
+        }));
+        toast('照片比例与证件照不匹配，请裁剪照片');
+      }
+    };
+    img.src = imageUrl;
   };
 
   const handlePhotoTypeChange = (typeId: string) => {
@@ -140,6 +171,30 @@ function App() {
       ...prev,
       selectedPhotoType: selectedType || null,
       processedImageUrl: null
+    }));
+    
+    // 如果已上传图片，检查是否需要裁剪
+    if (state.originalImageUrl && selectedType) {
+      checkImageAspectRatio(state.originalImageUrl, selectedType);
+    }
+  };
+  
+  // 处理裁剪完成
+  const handleCropComplete = (croppedImageUrl: string) => {
+    setState(prev => ({
+      ...prev,
+      previewUrl: croppedImageUrl,
+      croppedImageUrl,
+      showCropper: false
+    }));
+    toast.success('照片裁剪成功');
+  };
+  
+  // 取消裁剪
+  const handleCancelCrop = () => {
+    setState(prev => ({
+      ...prev,
+      showCropper: false
     }));
   };
 
@@ -496,6 +551,16 @@ function App() {
       </main>
 
       <Footer />
+      
+      {/* 图片裁剪组件 */}
+      {state.showCropper && state.originalImageUrl && state.selectedPhotoType && (
+        <ImageCropper
+          imageUrl={state.originalImageUrl}
+          aspectRatio={state.selectedPhotoType.widthCm / state.selectedPhotoType.heightCm}
+          onCropComplete={handleCropComplete}
+          onCancel={handleCancelCrop}
+        />
+      )}
     </div>
   );
 }
