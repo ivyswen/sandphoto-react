@@ -257,20 +257,20 @@
     {
       "id": "3R",
       "name": "5寸(3R)照片纸",
-      "widthCm": 8.9,
-      "heightCm": 12.7
-    },
-    {
-      "id": "4R",
-      "name": "6寸(4R)照片纸(推荐)",
       "widthCm": 12.7,
       "heightCm": 8.9
     },
     {
+      "id": "4R",
+      "name": "6寸(4R)照片纸(推荐)",
+      "widthCm": 15.2,
+      "heightCm": 10.2
+    },
+    {
       "id": "5R",
       "name": "7寸(5R)照片纸",
-      "widthCm": 12.7,
-      "heightCm": 17.8
+      "widthCm": 17.8,
+      "heightCm": 12.7
     },
     {
       "id": "6R",

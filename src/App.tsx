@@ -5,8 +5,59 @@ import { LineColorSelector } from './components/LineColorSelector';
 import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { PhotoType, ContainerType, AppState } from './types/PhotoType';
-import { Image as ImageIcon, Download, Loader2 } from 'lucide-react';
+import { Image as ImageIcon, Download, Loader2, RotateCw } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
+
+// 添加相纸方向示意图组件
+const PaperOrientationIcon: React.FC<{ isRotated: boolean; width: number; height: number }> = ({ isRotated, width, height }) => {
+  // 设置矩形的基础尺寸，让横竖差异更明显
+  const baseWidth = width * 0.8;
+  const baseHeight = height * 0.5;
+  
+  // 根据旋转状态决定实际显示的宽高
+  const paperWidth = isRotated ? baseHeight : baseWidth;
+  const paperHeight = isRotated ? baseWidth : baseHeight;
+  
+  return (
+    <svg 
+      width={width} 
+      height={height} 
+      viewBox={`0 0 ${width} ${height}`} 
+      className="inline-block ml-2"
+      style={{ transition: 'transform 0.3s ease' }}
+    >
+      <g transform={`translate(${(width - paperWidth) / 2}, ${(height - paperHeight) / 2})`}>
+        {/* 相纸外框 */}
+        <rect
+          width={paperWidth}
+          height={paperHeight}
+          stroke="currentColor"
+          strokeWidth="1.5"
+          fill="white"
+        />
+        {/* 内部纹理线条 */}
+        <line
+          x1={paperWidth * 0.2}
+          y1={paperHeight * 0.3}
+          x2={paperWidth * 0.8}
+          y2={paperHeight * 0.3}
+          stroke="currentColor"
+          strokeWidth="1"
+          opacity="0.3"
+        />
+        <line
+          x1={paperWidth * 0.2}
+          y1={paperHeight * 0.7}
+          x2={paperWidth * 0.8}
+          y2={paperHeight * 0.7}
+          stroke="currentColor"
+          strokeWidth="1"
+          opacity="0.3"
+        />
+      </g>
+    </svg>
+  );
+};
 
 function App() {
   const [state, setState] = useState<AppState>({
@@ -17,7 +68,8 @@ function App() {
     previewUrl: null,
     processedImageUrl: null,
     isProcessing: false,
-    error: null
+    error: null,
+    isContainerRotated: false
   });
 
   const [photoTypes, setPhotoTypes] = useState<PhotoType[]>([]);
@@ -73,8 +125,33 @@ function App() {
     }));
   };
 
+  const handleRotateContainer = async () => {
+    if (!state.selectedContainerType) return;
+    
+    setState(prev => ({
+      ...prev,
+      isContainerRotated: !prev.isContainerRotated,
+      processedImageUrl: null
+    }));
+  };
+
+  const getCurrentContainerType = (): ContainerType | null => {
+    if (!state.selectedContainerType) return null;
+    
+    if (state.isContainerRotated) {
+      return {
+        ...state.selectedContainerType,
+        widthCm: state.selectedContainerType.heightCm,
+        heightCm: state.selectedContainerType.widthCm
+      };
+    }
+    
+    return state.selectedContainerType;
+  };
+
   const handleGenerateLayout = async () => {
-    const { selectedPhotoType, selectedContainerType, lineColor, uploadedImage, previewUrl } = state;
+    const { selectedPhotoType, lineColor, uploadedImage, previewUrl } = state;
+    const selectedContainerType = getCurrentContainerType();
     
     if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
       setState(prev => ({
@@ -87,7 +164,6 @@ function App() {
     setState(prev => ({ ...prev, isProcessing: true, error: null }));
     
     try {
-      // 创建一个 Promise 来处理图片加载
       const loadImage = () => new Promise<HTMLImageElement>((resolve, reject) => {
         const img = document.createElement('img');
         img.onload = () => resolve(img);
@@ -107,8 +183,7 @@ function App() {
           lineColor
         );
         
-        // 生成高质量的 JPEG 图片
-        const processedImageUrl = canvas.toDataURL('image/jpeg', 0.92);
+        const processedImageUrl = canvas.toDataURL('image/jpeg', 0.96);
         setPhotoCount(count);
         
         setState(prev => ({
@@ -163,12 +238,30 @@ function App() {
                   value={state.selectedPhotoType?.id}
                   onChange={handlePhotoTypeChange}
                 />
-                <SizeSelector
-                  label="选择打印照片尺寸"
-                  options={containerTypes}
-                  value={state.selectedContainerType?.id}
-                  onChange={handleContainerTypeChange}
-                />
+                <div className="space-y-2">
+                  <SizeSelector
+                    label="选择打印照片尺寸"
+                    options={containerTypes}
+                    value={state.selectedContainerType?.id}
+                    onChange={handleContainerTypeChange}
+                  />
+                  {state.selectedContainerType && (
+                    <div className="flex items-center">
+                      <button
+                        onClick={handleRotateContainer}
+                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
+                      >
+                        <RotateCw className="w-4 h-4 mr-2" />
+                        {state.isContainerRotated ? '恢复相纸方向' : '旋转相纸方向'}
+                      </button>
+                      <PaperOrientationIcon
+                        isRotated={state.isContainerRotated}
+                        width={24}
+                        height={24}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <LineColorSelector
