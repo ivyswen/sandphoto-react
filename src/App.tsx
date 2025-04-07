@@ -195,11 +195,13 @@ function App() {
                 <div className="space-y-4">
                   <div className="border rounded-lg p-4">
                     <h3 className="text-lg font-medium text-gray-900 mb-4">原始照片</h3>
-                    <img
-                      src={state.previewUrl}
-                      alt="原始照片"
-                      className="max-w-full h-auto rounded-md"
-                    />
+                    <div className="flex justify-center items-center">
+                      <img
+                        src={state.previewUrl}
+                        alt="原始照片"
+                        className="max-w-full h-auto rounded-md"
+                      />
+                    </div>
                   </div>
                   
                   <button
@@ -233,11 +235,13 @@ function App() {
                         下载
                       </button>
                     </div>
-                    <img
-                      src={state.processedImageUrl}
-                      alt="排版结果"
-                      className="max-w-full h-auto rounded-md"
-                    />
+                    <div className="flex justify-center items-center">
+                      <img
+                        src={state.processedImageUrl}
+                        alt="排版结果"
+                        className="max-w-full h-auto rounded-md"
+                      />
+                    </div>
                   </div>
                 </div>
               )}
