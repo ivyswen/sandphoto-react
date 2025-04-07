@@ -152,12 +152,6 @@ function App() {
     }));
   };
 
-  // 添加一个重新生成排版的函数
-  const regenerateLayout = async () => {
-    if (state.previewUrl) {
-      await handleGenerateLayout();
-    }
-  };
 
   const handleRotateContainer = () => {
     if (!state.selectedContainerType) return;
@@ -237,7 +231,7 @@ function App() {
             color // 使用新的颜色值
           );
           
-          const processedImageUrl = canvas.toDataURL('image/jpeg', 0.96);
+          const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
           setPhotoCount(count);
           
           setState(prev => ({
@@ -306,7 +300,7 @@ function App() {
           lineColor
         );
         
-        const processedImageUrl = canvas.toDataURL('image/jpeg', 0.96);
+        const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
         setPhotoCount(count);
         
         setState(prev => ({

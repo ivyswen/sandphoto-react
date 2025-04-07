@@ -81,10 +81,10 @@ export class PhotoLayoutService {
         tempCtx.fillRect(0, 0, targetWidthPx, targetHeightPx);
         
         // 计算源图像的裁剪区域，保持宽高比
-        let sourceX = 0;
-        let sourceY = 0;
-        let sourceWidth = sourceImage.width;
-        let sourceHeight = sourceImage.height;
+        const sourceX = 0;
+        const sourceY = 0;
+        const sourceWidth = sourceImage.width;
+        const sourceHeight = sourceImage.height;
         
         // 绘制照片到临时画布
         tempCtx.drawImage(
