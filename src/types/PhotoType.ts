@@ -14,6 +14,7 @@ export interface ContainerType {
 }
 
 export interface AppState {
+  isContainerRotated: boolean;
   selectedPhotoType: PhotoType | null;
   selectedContainerType: ContainerType | null;
   lineColor: string;

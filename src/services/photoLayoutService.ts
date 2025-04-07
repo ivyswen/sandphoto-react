@@ -51,7 +51,6 @@ export class PhotoLayoutService {
     const photosPerCol = Math.floor(canvas.height / targetHeightPx);
     
     // 计算总照片数和起始位置（居中布局）
-    const totalPhotos = photosPerRow * photosPerCol;
     const startX = (canvas.width - (photosPerRow * targetWidthPx)) / 2;
     const startY = (canvas.height - (photosPerCol * targetHeightPx)) / 2;
     

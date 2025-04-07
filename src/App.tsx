@@ -7,16 +7,34 @@ import { Footer } from './components/Footer';
 import { PhotoType, ContainerType, AppState } from './types/PhotoType';
 import { Image as ImageIcon, Download, Loader2, RotateCw } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
+import { Toaster, toast } from 'react-hot-toast';
 
 // 添加相纸方向示意图组件
-const PaperOrientationIcon: React.FC<{ isRotated: boolean; width: number; height: number }> = ({ isRotated, width, height }) => {
-  // 设置矩形的基础尺寸，让横竖差异更明显
-  const baseWidth = width * 0.8;
-  const baseHeight = height * 0.5;
+const PaperOrientationIcon: React.FC<{ 
+  isRotated: boolean; 
+  width: number; 
+  height: number;
+  containerType: ContainerType | null;
+}> = ({ isRotated, width, height, containerType }) => {
+  if (!containerType) return null;
+
+  // 判断相纸是否默认为横向（宽度大于高度）
+  const isDefaultLandscape = containerType.widthCm > containerType.heightCm;
   
-  // 根据旋转状态决定实际显示的宽高
-  const paperWidth = isRotated ? baseHeight : baseWidth;
-  const paperHeight = isRotated ? baseWidth : baseHeight;
+  // 计算最终的方向：
+  // 如果默认是横向，且旋转了，则变为纵向
+  // 如果默认是纵向，且旋转了，则变为横向
+  const isCurrentLandscape = isRotated ? !isDefaultLandscape : isDefaultLandscape;
+
+  // 设置矩形的基础尺寸，保持和实际相纸的比例
+  const maxDimension = Math.max(containerType.widthCm, containerType.heightCm);
+  const scale = width * 0.8 / maxDimension;
+  const paperWidth = isCurrentLandscape 
+    ? Math.max(containerType.widthCm, containerType.heightCm) * scale
+    : Math.min(containerType.widthCm, containerType.heightCm) * scale;
+  const paperHeight = isCurrentLandscape
+    ? Math.min(containerType.widthCm, containerType.heightCm) * scale
+    : Math.max(containerType.widthCm, containerType.heightCm) * scale;
   
   return (
     <svg 
@@ -24,7 +42,6 @@ const PaperOrientationIcon: React.FC<{ isRotated: boolean; width: number; height
       height={height} 
       viewBox={`0 0 ${width} ${height}`} 
       className="inline-block ml-2"
-      style={{ transition: 'transform 0.3s ease' }}
     >
       <g transform={`translate(${(width - paperWidth) / 2}, ${(height - paperHeight) / 2})`}>
         {/* 相纸外框 */}
@@ -78,6 +95,16 @@ function App() {
 
   const photoLayoutService = new PhotoLayoutService();
 
+  const [shouldRegenerate, setShouldRegenerate] = useState(false);
+
+  // 添加一个 useEffect 来处理重新生成排版
+  useEffect(() => {
+    if (shouldRegenerate) {
+      handleGenerateLayout();
+      setShouldRegenerate(false);
+    }
+  }, [shouldRegenerate]);
+
   useEffect(() => {
     const loadPhotoTypes = async () => {
       try {
@@ -125,14 +152,33 @@ function App() {
     }));
   };
 
-  const handleRotateContainer = async () => {
+  // 添加一个重新生成排版的函数
+  const regenerateLayout = async () => {
+    if (state.previewUrl) {
+      await handleGenerateLayout();
+    }
+  };
+
+  const handleRotateContainer = () => {
     if (!state.selectedContainerType) return;
     
-    setState(prev => ({
-      ...prev,
-      isContainerRotated: !prev.isContainerRotated,
-      processedImageUrl: null
-    }));
+    setState(prev => {
+      const newRotated = !prev.isContainerRotated;
+      
+      // 显示旋转通知
+      toast.success(newRotated ? '相纸方向已旋转' : '相纸方向已恢复');
+      
+      return {
+        ...prev,
+        isContainerRotated: newRotated,
+        isProcessing: true
+      };
+    });
+
+    // 如果有已生成的排版，设置标志以触发重新生成
+    if (state.processedImageUrl) {
+      setShouldRegenerate(true);
+    }
   };
 
   const getCurrentContainerType = (): ContainerType | null => {
@@ -149,11 +195,88 @@ function App() {
     return state.selectedContainerType;
   };
 
+  const handleColorChange = (color: string) => {
+    // 如果颜色没有变化，不做任何处理
+    if (color === state.lineColor) return;
+
+    // 如果已有排版结果，使用新的颜色值重新生成
+    if (state.processedImageUrl) {
+      const { selectedPhotoType, uploadedImage, previewUrl } = state;
+      const selectedContainerType = getCurrentContainerType();
+      
+      if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
+        return;
+      }
+
+      setState(prev => ({
+        ...prev,
+        lineColor: color,
+        isProcessing: true
+      }));
+
+      toast.success('分割线颜色已更新');
+
+      // 创建一个新的 Promise 来处理图片加载
+      const loadImage = () => new Promise<HTMLImageElement>((resolve, reject) => {
+        const img = document.createElement('img');
+        img.onload = () => resolve(img);
+        img.onerror = () => reject(new Error('图片加载失败'));
+        img.src = previewUrl;
+      });
+
+      const loadingToast = toast.loading('正在生成排版...');
+
+      // 使用 async IIFE 来处理异步操作
+      (async () => {
+        try {
+          const image = await loadImage();
+          const { canvas, count } = photoLayoutService.calculateOptimalLayout(
+            image,
+            selectedPhotoType,
+            selectedContainerType,
+            color // 使用新的颜色值
+          );
+          
+          const processedImageUrl = canvas.toDataURL('image/jpeg', 0.96);
+          setPhotoCount(count);
+          
+          setState(prev => ({
+            ...prev,
+            processedImageUrl,
+            isProcessing: false,
+            error: null
+          }));
+
+          toast.success(`排版完成，共 ${count} 张照片`, {
+            id: loadingToast
+          });
+        } catch (error) {
+          console.error('Layout calculation error:', error);
+          setState(prev => ({
+            ...prev,
+            error: '排版计算失败，请检查照片尺寸是否合适',
+            isProcessing: false
+          }));
+          toast.error('排版计算失败，请检查照片尺寸是否合适', {
+            id: loadingToast
+          });
+        }
+      })();
+    } else {
+      // 如果没有排版结果，只更新颜色
+      setState(prev => ({
+        ...prev,
+        lineColor: color
+      }));
+    }
+  };
+
   const handleGenerateLayout = async () => {
     const { selectedPhotoType, lineColor, uploadedImage, previewUrl } = state;
     const selectedContainerType = getCurrentContainerType();
     
     if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
+      toast.error('请选择照片类型、打印尺寸并上传照片');
       setState(prev => ({
         ...prev,
         error: '请选择照片类型、打印尺寸并上传照片'
@@ -163,6 +286,8 @@ function App() {
     
     setState(prev => ({ ...prev, isProcessing: true, error: null }));
     
+    const loadingToast = toast.loading('正在生成排版...');
+    
     try {
       const loadImage = () => new Promise<HTMLImageElement>((resolve, reject) => {
         const img = document.createElement('img');
@@ -171,11 +296,9 @@ function App() {
         img.src = previewUrl;
       });
 
-      // 等待图片加载完成
       const image = await loadImage();
       
       try {
-        // 计算最佳布局
         const { canvas, count } = photoLayoutService.calculateOptimalLayout(
           image,
           selectedPhotoType,
@@ -192,6 +315,10 @@ function App() {
           isProcessing: false,
           error: null
         }));
+
+        toast.success(`排版完成，共 ${count} 张照片`, {
+          id: loadingToast
+        });
       } catch (error) {
         console.error('Layout calculation error:', error);
         setState(prev => ({
@@ -199,6 +326,9 @@ function App() {
           error: '排版计算失败，请检查照片尺寸是否合适',
           isProcessing: false
         }));
+        toast.error('排版计算失败，请检查照片尺寸是否合适', {
+          id: loadingToast
+        });
       }
     } catch (error) {
       console.error('Image processing error:', error);
@@ -207,6 +337,9 @@ function App() {
         error: '图片处理失败，请确保上传了有效的图片文件',
         isProcessing: false
       }));
+      toast.error('图片处理失败，请确保上传了有效的图片文件', {
+        id: loadingToast
+      });
     }
   };
 
@@ -214,17 +347,41 @@ function App() {
     if (state.processedImageUrl && state.selectedPhotoType && state.selectedContainerType) {
       const link = document.createElement('a');
       link.href = state.processedImageUrl;
-      // 生成文件名：数量x_照片类型_打印尺寸.jpg
       const fileName = `${photoCount}x_${state.selectedPhotoType.name}_${state.selectedContainerType.name}.jpg`;
-      link.download = fileName.replace(/\s+/g, '_'); // 替换空格为下划线
+      link.download = fileName.replace(/\s+/g, '_');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      
+      toast.success('照片已开始下载');
     }
   };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <Toaster
+        position="top-center"
+        toastOptions={{
+          duration: 2000,
+          style: {
+            background: '#363636',
+            color: '#fff',
+          },
+          success: {
+            iconTheme: {
+              primary: '#4ade80',
+              secondary: '#fff',
+            },
+          },
+          error: {
+            iconTheme: {
+              primary: '#ef4444',
+              secondary: '#fff',
+            },
+          },
+        }}
+      />
+      
       <Header />
       
       <main className="flex-grow py-8">
@@ -258,6 +415,7 @@ function App() {
                         isRotated={state.isContainerRotated}
                         width={24}
                         height={24}
+                        containerType={state.selectedContainerType}
                       />
                     </div>
                   )}
@@ -266,7 +424,7 @@ function App() {
 
               <LineColorSelector
                 value={state.lineColor}
-                onChange={(color) => setState(prev => ({ ...prev, lineColor: color }))}
+                onChange={handleColorChange}
               />
 
               <PhotoUploader onUpload={handleImageUpload} />
