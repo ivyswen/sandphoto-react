@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { PhotoUploader } from './components/PhotoUploader';
 import { SizeSelector } from './components/SizeSelector';
 import { LineColorSelector } from './components/LineColorSelector';
+import { Header } from './components/Header';
+import { Footer } from './components/Footer';
 import { PhotoType, ContainerType, AppState } from './types/PhotoType';
 import { Image as ImageIcon, Download, Loader2 } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
@@ -147,103 +149,104 @@ function App() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 py-8">
-      <div className="max-w-4xl mx-auto px-4">
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">证件照排版工具</h1>
-          <p className="text-gray-600">在一张6寸照片上排版多张证件照</p>
-        </div>
-
-        <div className="bg-white rounded-lg shadow-lg p-6">
-          <div className="grid gap-6">
-            <div className="grid md:grid-cols-2 gap-4">
-              <SizeSelector
-                label="选择证件照尺寸"
-                options={photoTypes}
-                value={state.selectedPhotoType?.id}
-                onChange={handlePhotoTypeChange}
-              />
-              <SizeSelector
-                label="选择打印照片尺寸"
-                options={containerTypes}
-                value={state.selectedContainerType?.id}
-                onChange={handleContainerTypeChange}
-              />
-            </div>
-
-            <LineColorSelector
-              value={state.lineColor}
-              onChange={(color) => setState(prev => ({ ...prev, lineColor: color }))}
-            />
-
-            <PhotoUploader onUpload={handleImageUpload} />
-
-            {state.error && (
-              <div className="bg-red-50 text-red-600 p-3 rounded-md">
-                {state.error}
+    <div className="min-h-screen flex flex-col bg-gray-50">
+      <Header />
+      
+      <main className="flex-grow py-8">
+        <div className="max-w-4xl mx-auto px-4">
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <div className="grid gap-6">
+              <div className="grid md:grid-cols-2 gap-4">
+                <SizeSelector
+                  label="选择证件照尺寸"
+                  options={photoTypes}
+                  value={state.selectedPhotoType?.id}
+                  onChange={handlePhotoTypeChange}
+                />
+                <SizeSelector
+                  label="选择打印照片尺寸"
+                  options={containerTypes}
+                  value={state.selectedContainerType?.id}
+                  onChange={handleContainerTypeChange}
+                />
               </div>
-            )}
 
-            {!state.previewUrl && !state.processedImageUrl && (
-              <div className="text-center py-12">
-                <ImageIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
-                <p className="text-gray-500">上传照片后预览将显示在这里</p>
-              </div>
-            )}
+              <LineColorSelector
+                value={state.lineColor}
+                onChange={(color) => setState(prev => ({ ...prev, lineColor: color }))}
+              />
 
-            {state.previewUrl && !state.processedImageUrl && (
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <h3 className="text-lg font-medium text-gray-900 mb-4">原始照片</h3>
-                  <img
-                    src={state.previewUrl}
-                    alt="原始照片"
-                    className="max-w-full h-auto rounded-md"
-                  />
+              <PhotoUploader onUpload={handleImageUpload} />
+
+              {state.error && (
+                <div className="bg-red-50 text-red-600 p-3 rounded-md">
+                  {state.error}
                 </div>
-                
-                <button
-                  onClick={handleGenerateLayout}
-                  disabled={state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType}
-                  className={`w-full py-3 px-4 rounded-lg font-medium transition-colors
-                    ${state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType
-                      ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                      : 'bg-blue-500 text-white hover:bg-blue-600'}`}
-                >
-                  {state.isProcessing ? (
-                    <span className="flex items-center justify-center">
-                      <Loader2 className="w-5 h-5 animate-spin mr-2" />
-                      处理中...
-                    </span>
-                  ) : '生成排版'}
-                </button>
-              </div>
-            )}
+              )}
 
-            {state.processedImageUrl && (
-              <div className="space-y-4">
-                <div className="border rounded-lg p-4">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-medium text-gray-900">排版结果 ({photoCount} 张证件照)</h3>
-                    <button
-                      onClick={handleDownload}
-                      className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
-                    >
-                      <Download className="w-4 h-4 mr-2" />
-                      下载
-                    </button>
+              {!state.previewUrl && !state.processedImageUrl && (
+                <div className="text-center py-12">
+                  <ImageIcon className="w-16 h-16 mx-auto text-gray-400 mb-4" />
+                  <p className="text-gray-500">上传照片后预览将显示在这里</p>
+                </div>
+              )}
+
+              {state.previewUrl && !state.processedImageUrl && (
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <h3 className="text-lg font-medium text-gray-900 mb-4">原始照片</h3>
+                    <img
+                      src={state.previewUrl}
+                      alt="原始照片"
+                      className="max-w-full h-auto rounded-md"
+                    />
                   </div>
-                  <img
-                    src={state.processedImageUrl}
-                    alt="排版结果"
-                    className="max-w-full h-auto rounded-md"
-                  />
+                  
+                  <button
+                    onClick={handleGenerateLayout}
+                    disabled={state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType}
+                    className={`w-full py-3 px-4 rounded-lg font-medium transition-colors
+                      ${state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-blue-500 text-white hover:bg-blue-600'}`}
+                  >
+                    {state.isProcessing ? (
+                      <span className="flex items-center justify-center">
+                        <Loader2 className="w-5 h-5 animate-spin mr-2" />
+                        处理中...
+                      </span>
+                    ) : '生成排版'}
+                  </button>
                 </div>
-              </div>
-            )}
+              )}
+
+              {state.processedImageUrl && (
+                <div className="space-y-4">
+                  <div className="border rounded-lg p-4">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-medium text-gray-900">排版结果 ({photoCount} 张证件照)</h3>
+                      <button
+                        onClick={handleDownload}
+                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                      >
+                        <Download className="w-4 h-4 mr-2" />
+                        下载
+                      </button>
+                    </div>
+                    <img
+                      src={state.processedImageUrl}
+                      alt="排版结果"
+                      className="max-w-full h-auto rounded-md"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
-      </div>
+      </main>
+
+      <Footer />
     </div>
   );
 }

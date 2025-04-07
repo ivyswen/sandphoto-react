@@ -20,9 +20,31 @@ export class PhotoLayoutService {
     canvas.width = containerType.widthCm * this.pxPerCm;
     canvas.height = containerType.heightCm * this.pxPerCm;
     
-    // 计算目标照片尺寸
-    const targetWidthPx = targetType.widthCm * this.pxPerCm;
-    const targetHeightPx = targetType.heightCm * this.pxPerCm;
+    // 计算原始照片的宽高比
+    const sourceAspectRatio = sourceImage.width / sourceImage.height;
+    
+    // 计算目标照片的理想尺寸（以厘米为单位）
+    const targetWidthCm = targetType.widthCm;
+    const targetHeightCm = targetType.heightCm;
+    const targetAspectRatio = targetWidthCm / targetHeightCm;
+    
+    // 根据原始照片的宽高比调整目标尺寸
+    let adjustedWidthCm = targetWidthCm;
+    let adjustedHeightCm = targetHeightCm;
+    
+    if (Math.abs(sourceAspectRatio - targetAspectRatio) > 0.01) {
+      // 如果原始照片比目标更宽，以高度为基准
+      if (sourceAspectRatio > targetAspectRatio) {
+        adjustedWidthCm = targetHeightCm * sourceAspectRatio;
+      } else {
+        // 如果原始照片比目标更高，以宽度为基准
+        adjustedHeightCm = targetWidthCm / sourceAspectRatio;
+      }
+    }
+    
+    // 转换为像素尺寸
+    const targetWidthPx = adjustedWidthCm * this.pxPerCm;
+    const targetHeightPx = adjustedHeightCm * this.pxPerCm;
     
     // 计算每行/列可以放置的照片数量
     const photosPerRow = Math.floor(canvas.width / targetWidthPx);
@@ -44,8 +66,36 @@ export class PhotoLayoutService {
         const x = startX + (col * targetWidthPx);
         const y = startY + (row * targetHeightPx);
         
-        // 绘制照片
-        ctx.drawImage(sourceImage, x, y, targetWidthPx, targetHeightPx);
+        // 创建临时画布用于裁剪和缩放照片
+        const tempCanvas = document.createElement('canvas');
+        const tempCtx = tempCanvas.getContext('2d');
+        if (!tempCtx) {
+          throw new Error('Failed to get temporary canvas context');
+        }
+        
+        // 设置临时画布尺寸
+        tempCanvas.width = targetWidthPx;
+        tempCanvas.height = targetHeightPx;
+        
+        // 在临时画布上绘制并缩放照片
+        tempCtx.fillStyle = 'white';
+        tempCtx.fillRect(0, 0, targetWidthPx, targetHeightPx);
+        
+        // 计算源图像的裁剪区域，保持宽高比
+        let sourceX = 0;
+        let sourceY = 0;
+        let sourceWidth = sourceImage.width;
+        let sourceHeight = sourceImage.height;
+        
+        // 绘制照片到临时画布
+        tempCtx.drawImage(
+          sourceImage,
+          sourceX, sourceY, sourceWidth, sourceHeight,
+          0, 0, targetWidthPx, targetHeightPx
+        );
+        
+        // 将临时画布的内容绘制到主画布
+        ctx.drawImage(tempCanvas, x, y);
         
         // 绘制分隔线
         if (lineColor !== 'transparent') {

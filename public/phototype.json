@@ -29,20 +29,6 @@
       "category": "签证"
     },
     {
-      "id": "id_2inch",
-      "name": "2英寸证件照",
-      "widthCm": 5.08,
-      "heightCm": 5.08,
-      "category": "证件照"
-    },
-    {
-      "id": "id_1inch",
-      "name": "1英寸证件照",
-      "widthCm": 2.54,
-      "heightCm": 3.81,
-      "category": "证件照"
-    },
-    {
       "id": "id_card_china",
       "name": "身份证照片",
       "widthCm": 2.6,
@@ -69,26 +55,246 @@
       "widthCm": 2.8,
       "heightCm": 3.8,
       "category": "证件照"
+    },
+    {
+      "id": "visa_uk",
+      "name": "英国签证照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "签证"
+    },
+    {
+      "id": "visa_canada",
+      "name": "加拿大签证照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "签证"
+    },
+    {
+      "id": "visa_australia",
+      "name": "澳大利亚签证照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "签证"
+    },
+    {
+      "id": "passport_international",
+      "name": "国际护照标准照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "护照"
+    },
+    {
+      "id": "social_security",
+      "name": "社保卡照片",
+      "widthCm": 2.2,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "residence_permit",
+      "name": "居住证照片",
+      "widthCm": 2.6,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1",
+      "name": "1寸照片",
+      "widthCm": 2.5,
+      "heightCm": 3.5,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_large",
+      "name": "大一寸照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_small",
+      "name": "小一寸照片",
+      "widthCm": 2.2,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_color_large",
+      "name": "彩色大一寸照片",
+      "widthCm": 4.0,
+      "heightCm": 5.5,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_color_small",
+      "name": "彩色小一寸照片",
+      "widthCm": 2.7,
+      "heightCm": 3.8,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2",
+      "name": "2寸照片",
+      "widthCm": 3.8,
+      "heightCm": 5.1,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2_large",
+      "name": "大二寸照片",
+      "widthCm": 3.5,
+      "heightCm": 5.0,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2_small",
+      "name": "小二寸照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "证件照"
+    },
+    {
+      "id": "passport_hk",
+      "name": "香港特区护照照片",
+      "widthCm": 4.0,
+      "heightCm": 5.0,
+      "category": "护照"
+    },
+    {
+      "id": "travel_permit_hk",
+      "name": "港澳通行证照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "证件照"
+    },
+    {
+      "id": "vehicle_license",
+      "name": "机动车行驶证照片",
+      "widthCm": 6.0,
+      "heightCm": 8.8,
+      "category": "证件照"
+    },
+    {
+      "id": "graduation_photo",
+      "name": "毕业生照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "证件照"
+    },
+    {
+      "id": "visa_us_immigrant",
+      "name": "美国移民签证照片",
+      "widthCm": 3.5,
+      "heightCm": 4.0,
+      "category": "签证"
+    },
+    {
+      "id": "visa_schengen_us",
+      "name": "在美申请申根签证照片",
+      "widthCm": 3.0,
+      "heightCm": 4.0,
+      "category": "签证"
+    },
+    {
+      "id": "judicial_exam",
+      "name": "国家司法考试报名照片",
+      "widthCm": 3.2,
+      "heightCm": 4.6,
+      "category": "证件照"
+    },
+    {
+      "id": "visa_argentina",
+      "name": "阿根廷签证照片",
+      "widthCm": 4.0,
+      "heightCm": 4.0,
+      "category": "签证"
+    },
+    {
+      "id": "visa_italy",
+      "name": "意大利签证照片",
+      "widthCm": 3.4,
+      "heightCm": 4.0,
+      "category": "签证"
+    },
+    {
+      "id": "japan_exam",
+      "name": "日本资格考试报名照片",
+      "widthCm": 2.4,
+      "heightCm": 3.0,
+      "category": "证件照"
+    },
+    {
+      "id": "visa_canada_b",
+      "name": "加拿大签证B类照片",
+      "widthCm": 5.0,
+      "heightCm": 7.0,
+      "category": "签证"
+    },
+    {
+      "id": "marriage_cert",
+      "name": "结婚证照片",
+      "widthCm": 6.0,
+      "heightCm": 4.0,
+      "category": "证件照"
+    },
+    {
+      "id": "marriage_reg_2022",
+      "name": "结婚登记照2022",
+      "widthCm": 5.3,
+      "heightCm": 3.5,
+      "category": "证件照"
+    },
+    {
+      "id": "visa_thailand",
+      "name": "泰国落地签照片",
+      "widthCm": 4.0,
+      "heightCm": 6.0,
+      "category": "签证"
     }
   ],
   "containerTypes": [
     {
-      "id": "6inch",
-      "name": "6英寸照片纸",
-      "widthCm": 15.24,
-      "heightCm": 10.16
+      "id": "3R",
+      "name": "5寸(3R)照片纸",
+      "widthCm": 8.9,
+      "heightCm": 12.7
     },
     {
       "id": "4R",
-      "name": "4R照片纸",
+      "name": "6寸(4R)照片纸",
       "widthCm": 12.7,
       "heightCm": 8.9
     },
     {
       "id": "5R",
-      "name": "5R照片纸",
+      "name": "7寸(5R)照片纸",
       "widthCm": 12.7,
       "heightCm": 17.8
+    },
+    {
+      "id": "6R",
+      "name": "8寸(6R)照片纸",
+      "widthCm": 20.3,
+      "heightCm": 15.2
+    },
+    {
+      "id": "8R",
+      "name": "10英寸照片纸",
+      "widthCm": 25.4,
+      "heightCm": 20.3
+    },
+    {
+      "id": "12inch",
+      "name": "12英寸照片纸",
+      "widthCm": 25.4,
+      "heightCm": 30.48
+    },
+    {
+      "id": "A3",
+      "name": "A3纸",
+      "widthCm": 29.7,
+      "heightCm": 42.0
     },
     {
       "id": "A4",
@@ -97,10 +303,58 @@
       "heightCm": 29.7
     },
     {
-      "id": "3R",
-      "name": "3R照片纸",
-      "widthCm": 8.9,
-      "heightCm": 12.7
+      "id": "A5",
+      "name": "A5纸",
+      "widthCm": 14.8,
+      "heightCm": 21.0
+    },
+    {
+      "id": "B3",
+      "name": "B3纸",
+      "widthCm": 50.0,
+      "heightCm": 70.7
+    },
+    {
+      "id": "B4",
+      "name": "B4纸",
+      "widthCm": 25.0,
+      "heightCm": 35.3
+    },
+    {
+      "id": "B5",
+      "name": "B5纸",
+      "widthCm": 17.6,
+      "heightCm": 25.0
+    },
+    {
+      "id": "letter",
+      "name": "Letter纸",
+      "widthCm": 21.59,
+      "heightCm": 27.94
+    },
+    {
+      "id": "A6",
+      "name": "A6纸",
+      "widthCm": 10.5,
+      "heightCm": 14.8
+    },
+    {
+      "id": "postcard",
+      "name": "明信片",
+      "widthCm": 14.8,
+      "heightCm": 10.0
+    },
+    {
+      "id": "canon_4x6",
+      "name": "佳能4x6相纸",
+      "widthCm": 13.35,
+      "heightCm": 8.92
+    },
+    {
+      "id": "hagaki",
+      "name": "Hagaki",
+      "widthCm": 10.0,
+      "heightCm": 14.8
     }
   ]
 }

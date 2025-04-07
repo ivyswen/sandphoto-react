@@ -22,7 +22,7 @@ Sandphoto 是一个在线证件照排版工具，允许用户在一张 6 英寸�
 
 1. 克隆项目
 ```bash
-git clone https://github.com/yourusername/sandphoto-react.git
+git clone https://github.com/ivyswen/sandphoto-react.git
 cd sandphoto-react
 ```
 
