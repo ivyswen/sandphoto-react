@@ -1,0 +1,106 @@
+{
+  "photoTypes": [
+    {
+      "id": "passport_china",
+      "name": "中国护照照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "护照"
+    },
+    {
+      "id": "visa_us",
+      "name": "美国签证照片",
+      "widthCm": 5.0,
+      "heightCm": 5.0,
+      "category": "签证"
+    },
+    {
+      "id": "visa_schengen",
+      "name": "申根签证照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "签证"
+    },
+    {
+      "id": "visa_japan",
+      "name": "日本签证照片",
+      "widthCm": 4.5,
+      "heightCm": 4.5,
+      "category": "签证"
+    },
+    {
+      "id": "id_2inch",
+      "name": "2英寸证件照",
+      "widthCm": 5.08,
+      "heightCm": 5.08,
+      "category": "证件照"
+    },
+    {
+      "id": "id_1inch",
+      "name": "1英寸证件照",
+      "widthCm": 2.54,
+      "heightCm": 3.81,
+      "category": "证件照"
+    },
+    {
+      "id": "id_card_china",
+      "name": "身份证照片",
+      "widthCm": 2.6,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "driving_license_china",
+      "name": "驾驶证照片",
+      "widthCm": 2.2,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "work_permit",
+      "name": "工作证照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "证件照"
+    },
+    {
+      "id": "student_card",
+      "name": "学生证照片",
+      "widthCm": 2.8,
+      "heightCm": 3.8,
+      "category": "证件照"
+    }
+  ],
+  "containerTypes": [
+    {
+      "id": "6inch",
+      "name": "6英寸照片纸",
+      "widthCm": 15.24,
+      "heightCm": 10.16
+    },
+    {
+      "id": "4R",
+      "name": "4R照片纸",
+      "widthCm": 12.7,
+      "heightCm": 8.9
+    },
+    {
+      "id": "5R",
+      "name": "5R照片纸",
+      "widthCm": 12.7,
+      "heightCm": 17.8
+    },
+    {
+      "id": "A4",
+      "name": "A4纸",
+      "widthCm": 21.0,
+      "heightCm": 29.7
+    },
+    {
+      "id": "3R",
+      "name": "3R照片纸",
+      "widthCm": 8.9,
+      "heightCm": 12.7
+    }
+  ]
+}
