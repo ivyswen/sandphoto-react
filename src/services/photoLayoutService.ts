@@ -262,8 +262,8 @@ export class PhotoLayoutService {
       throw new Error('Failed to get canvas context');
     }
 
-    // 相纸背景始终使用白色
-    ctx.fillStyle = '#FFFFFF';
+    // 设置相纸背景色，使用提供的背景色或默认白色
+    ctx.fillStyle = background ? background.color : '#FFFFFF';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
     // 计算实际的间距，使照片在画布上均匀分布
@@ -272,7 +272,7 @@ export class PhotoLayoutService {
     const horizontalGap = (containerWidthPx - totalPhotosWidth) / (photosPerRow + 1);
     const verticalGap = (containerHeightPx - totalPhotosHeight) / (photosPerColumn + 1);
 
-    // 创建临时画布来绘制单张照片
+    // 创建临时画布来绘制单张照片（与 createPreview 保持一致的处理方式）
     const tempCanvas = document.createElement('canvas');
     tempCanvas.width = photoWidthPx;
     tempCanvas.height = photoHeightPx;
@@ -281,21 +281,31 @@ export class PhotoLayoutService {
       throw new Error('Failed to get temporary canvas context');
     }
 
-    // 清空临时画布
+    // 1. 先设置背景色
     tempCtx.clearRect(0, 0, tempCanvas.width, tempCanvas.height);
-
-    // 如果提供了背景色，先在临时画布上填充背景
     if (background) {
       tempCtx.fillStyle = background.color;
       tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
-    } else {
-      // 如果没有提供背景色，使用白色
-      tempCtx.fillStyle = '#FFFFFF';
-      tempCtx.fillRect(0, 0, tempCanvas.width, tempCanvas.height);
     }
 
-    // 将裁剪后的图片数据绘制到临时画布
-    tempCtx.putImageData(this.croppedImageData, 0, 0);
+    // 2. 创建另一个临时画布来处理裁剪数据
+    const imageCanvas = document.createElement('canvas');
+    imageCanvas.width = photoWidthPx;
+    imageCanvas.height = photoHeightPx;
+    const imageCtx = imageCanvas.getContext('2d', { alpha: true });
+    
+    if (!imageCtx) {
+      throw new Error('Failed to get image canvas context');
+    }
+    
+    // 3. 将裁剪数据绘制到图片画布
+    imageCtx.putImageData(this.croppedImageData, 0, 0);
+
+    // 4. 设置合成模式
+    tempCtx.globalCompositeOperation = 'source-over';
+    
+    // 5. 将图片画布的内容绘制到带背景的临时画布上
+    tempCtx.drawImage(imageCanvas, 0, 0);
 
     // 绘制照片
     let count = 0;
