@@ -7,76 +7,10 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ImageCropper } from './components/ImageCropper';
 import { PhotoType, ContainerType, AppState, BackgroundOption } from './types/PhotoType';
-import { Image as ImageIcon, Download, Loader2, RotateCw, Printer } from 'lucide-react';
+import { Image as ImageIcon, Download, Loader2, Printer } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
 import { Toaster, toast } from 'react-hot-toast';
 
-// 添加相纸方向示意图组件
-const PaperOrientationIcon: React.FC<{ 
-  isRotated: boolean; 
-  width: number; 
-  height: number;
-  containerType: ContainerType | null;
-}> = ({ isRotated, width, height, containerType }) => {
-  if (!containerType) return null;
-
-  // 判断相纸是否默认为横向（宽度大于高度）
-  const isDefaultLandscape = containerType.widthCm > containerType.heightCm;
-  
-  // 计算最终的方向：
-  // 如果默认是横向，且旋转了，则变为纵向
-  // 如果默认是纵向，且旋转了，则变为横向
-  const isCurrentLandscape = isRotated ? !isDefaultLandscape : isDefaultLandscape;
-
-  // 设置矩形的基础尺寸，保持和实际相纸的比例
-  const maxDimension = Math.max(containerType.widthCm, containerType.heightCm);
-  const scale = width * 0.8 / maxDimension;
-  const paperWidth = isCurrentLandscape 
-    ? Math.max(containerType.widthCm, containerType.heightCm) * scale
-    : Math.min(containerType.widthCm, containerType.heightCm) * scale;
-  const paperHeight = isCurrentLandscape
-    ? Math.min(containerType.widthCm, containerType.heightCm) * scale
-    : Math.max(containerType.widthCm, containerType.heightCm) * scale;
-  
-  return (
-    <svg 
-      width={width} 
-      height={height} 
-      viewBox={`0 0 ${width} ${height}`} 
-      className="inline-block ml-2"
-    >
-      <g transform={`translate(${(width - paperWidth) / 2}, ${(height - paperHeight) / 2})`}>
-        {/* 相纸外框 */}
-        <rect
-          width={paperWidth}
-          height={paperHeight}
-          stroke="currentColor"
-          strokeWidth="1.5"
-          fill="white"
-        />
-        {/* 内部纹理线条 */}
-        <line
-          x1={paperWidth * 0.2}
-          y1={paperHeight * 0.3}
-          x2={paperWidth * 0.8}
-          y2={paperHeight * 0.3}
-          stroke="currentColor"
-          strokeWidth="1"
-          opacity="0.3"
-        />
-        <line
-          x1={paperWidth * 0.2}
-          y1={paperHeight * 0.7}
-          x2={paperWidth * 0.8}
-          y2={paperHeight * 0.7}
-          stroke="currentColor"
-          strokeWidth="1"
-          opacity="0.3"
-        />
-      </g>
-    </svg>
-  );
-};
 
 // 预设背景选项
 const backgroundOptions: BackgroundOption[] = [
@@ -109,7 +43,6 @@ function App() {
     processedImageUrl: null,
     isProcessing: false,
     error: null,
-    isContainerRotated: false,
     showCropper: false,
     originalImageUrl: null,
     croppedImageUrl: null,
@@ -308,51 +241,6 @@ function App() {
     }));
   };
 
-  const handleContainerTypeChange = (typeId: string) => {
-    const selectedType = containerTypes.find(type => type.id === typeId);
-    setState(prev => ({
-      ...prev,
-      selectedContainerType: selectedType || null,
-      processedImageUrl: null
-    }));
-  };
-
-
-  const handleRotateContainer = () => {
-    if (!state.selectedContainerType) return;
-    
-    setState(prev => {
-      const newRotated = !prev.isContainerRotated;
-      
-      // 显示旋转通知
-      toast.success(newRotated ? '相纸方向已旋转' : '相纸方向已恢复');
-      
-      return {
-        ...prev,
-        isContainerRotated: newRotated,
-        isProcessing: true
-      };
-    });
-
-    // 如果有已生成的排版，设置标志以触发重新生成
-    if (state.processedImageUrl) {
-      setShouldRegenerate(true);
-    }
-  };
-
-  const getCurrentContainerType = (): ContainerType | null => {
-    if (!state.selectedContainerType) return null;
-    
-    if (state.isContainerRotated) {
-      return {
-        ...state.selectedContainerType,
-        widthCm: state.selectedContainerType.heightCm,
-        heightCm: state.selectedContainerType.widthCm
-      };
-    }
-    
-    return state.selectedContainerType;
-  };
 
   const handleColorChange = (color: string) => {
     // 如果颜色没有变化，不做任何处理
@@ -413,7 +301,7 @@ function App() {
     // 优先使用传入的颜色，否则使用 state 中的颜色
     const colorToUse = options?.newLineColor ?? state.lineColor;
     const { selectedPhotoType, hasTransparentBackground, selectedBackground } = state; // 保留这里的 background 读取，以备将来可能需要
-    const selectedContainerType = getCurrentContainerType();
+    const selectedContainerType = state.selectedContainerType;
 
     if (!selectedPhotoType || !selectedContainerType) {
       toast.error('请选择照片类型和打印尺寸');
@@ -536,6 +424,15 @@ function App() {
     }
   };
 
+  const handleContainerTypeChange = (typeId: string) => {
+    const selectedType = containerTypes.find(type => type.id === typeId);
+    setState(prev => ({
+      ...prev,
+      selectedContainerType: selectedType || null,
+      processedImageUrl: null
+    }));
+  };
+  
   // 这个函数是专门给按钮点击用的，它不接受参数
   const handleGenerateButtonClick = () => {
     handleGenerateLayout(); // 调用时不传递参数
@@ -584,25 +481,9 @@ function App() {
                     label="选择打印照片尺寸"
                     options={containerTypes}
                     value={state.selectedContainerType?.id}
-                    onChange={handleContainerTypeChange}
+                    onChange={ handleContainerTypeChange }
                   />
-                  {state.selectedContainerType && (
-                    <div className="flex items-center">
-                      <button
-                        onClick={handleRotateContainer}
-                        className="flex items-center px-3 py-2 text-sm font-medium text-gray-700 bg-gray-100 rounded-lg hover:bg-gray-200 transition-colors"
-                      >
-                        <RotateCw className="w-4 h-4 mr-2" />
-                        {state.isContainerRotated ? '恢复相纸方向' : '旋转相纸方向'}
-                      </button>
-                      <PaperOrientationIcon
-                        isRotated={state.isContainerRotated}
-                        width={24}
-                        height={24}
-                        containerType={state.selectedContainerType}
-                      />
-                    </div>
-                  )}
+
                 </div>
               </div>
 

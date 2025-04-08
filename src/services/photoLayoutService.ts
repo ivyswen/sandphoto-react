@@ -248,14 +248,43 @@ export class PhotoLayoutService {
       throw new Error('No cropped image data available');
     }
 
-    const containerWidthPx = containerType.widthCm * this.pxPerCm;
-    const containerHeightPx = containerType.heightCm * this.pxPerCm;
+    const GAP = 10; // 照片间距 10px
+
+    // 计算两种方向的照片数量
+    const calculatePhotoCount = (width: number, height: number) => {
+      const photosPerRow = Math.floor((width) / (this.targetSize!.width + GAP));
+      const photosPerColumn = Math.floor((height) / (this.targetSize!.height + GAP));
+      return photosPerRow * photosPerColumn;
+    };
+
+    // 计算常规方向的数量
+    const normalCount = calculatePhotoCount(
+      containerType.widthCm * this.pxPerCm,
+      containerType.heightCm * this.pxPerCm
+    );
+
+    // 计算旋转后的数量
+    const rotatedCount = calculatePhotoCount(
+      containerType.heightCm * this.pxPerCm,
+      containerType.widthCm * this.pxPerCm
+    );
+
+    // 选择照片数量更多的方向
+    let containerWidthPx, containerHeightPx;
+    if (rotatedCount > normalCount) {
+      containerWidthPx = containerType.heightCm * this.pxPerCm;
+      containerHeightPx = containerType.widthCm * this.pxPerCm;
+    } else {
+      containerWidthPx = containerType.widthCm * this.pxPerCm;
+      containerHeightPx = containerType.heightCm * this.pxPerCm;
+    }
+
     const photoWidthPx = this.targetSize.width;
     const photoHeightPx = this.targetSize.height;
 
     // 计算每行和每列可以放置的照片数量
-    const photosPerRow = Math.floor(containerWidthPx / (photoWidthPx + 10)); // 10px 间距
-    const photosPerColumn = Math.floor(containerHeightPx / (photoHeightPx + 10));
+    const photosPerRow = Math.floor(containerWidthPx / (photoWidthPx + GAP));
+    const photosPerColumn = Math.floor(containerHeightPx / (photoHeightPx + GAP));
 
     // 创建输出画布（相纸）
     const canvas = document.createElement('canvas');
