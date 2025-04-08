@@ -358,23 +358,19 @@ function App() {
     // 如果颜色没有变化，不做任何处理
     if (color === state.lineColor) return;
 
-    // 记录下修改前的状态
-    const hadProcessedImage = !!state.processedImageUrl;
-
-    // 首先更新颜色状态
+    // 仅更新颜色和处理状态，不清空 processedImageUrl
     setState(prev => ({
       ...prev,
-      lineColor: color, // 更新 state 中的颜色供其他地方使用
-      processedImageUrl: hadProcessedImage ? null : prev.processedImageUrl,
-      isProcessing: hadProcessedImage ? true : prev.isProcessing
+      lineColor: color,
+      isProcessing: !!prev.processedImageUrl // 仅当有排版结果时才设置 isProcessing
     }));
 
-    // 如果之前已有排版结果，则调用 handleGenerateLayout 重新生成
-    if (hadProcessedImage) {
-      setTimeout(() => {
-        // 直接将新颜色传递给 handleGenerateLayout
+    // 如果有排版结果，则重新生成
+    if (state.processedImageUrl) {
+      // 使用 requestAnimationFrame 确保状态更新后再重新生成
+      requestAnimationFrame(() => {
         handleGenerateLayout({ newLineColor: color });
-      }, 0);
+      });
     } else {
       toast.success('分割线颜色已选择');
     }
