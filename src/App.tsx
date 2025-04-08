@@ -358,78 +358,25 @@ function App() {
     // 如果颜色没有变化，不做任何处理
     if (color === state.lineColor) return;
 
-    // 如果已有排版结果，使用新的颜色值重新生成
-    if (state.processedImageUrl) {
-      const { selectedPhotoType, uploadedImage, previewUrl } = state;
-      const selectedContainerType = getCurrentContainerType();
-      
-      if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
-        return;
-      }
+    // 记录下修改前的状态
+    const hadProcessedImage = !!state.processedImageUrl;
 
-      setState(prev => ({
-        ...prev,
-        lineColor: color,
-        isProcessing: true
-      }));
+    // 首先更新颜色状态
+    setState(prev => ({
+      ...prev,
+      lineColor: color, // 更新 state 中的颜色供其他地方使用
+      processedImageUrl: hadProcessedImage ? null : prev.processedImageUrl,
+      isProcessing: hadProcessedImage ? true : prev.isProcessing
+    }));
 
-      toast.success('分割线颜色已更新');
-
-      // 创建一个新的 Promise 来处理图片加载
-      const loadImage = () => new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = document.createElement('img');
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('图片加载失败'));
-        img.src = previewUrl;
-      });
-
-      const loadingToast = toast.loading('正在生成排版...');
-
-      // 使用 async IIFE 来处理异步操作
-      (async () => {
-        try {
-          const image = await loadImage();
-          
-          // 先初始化图片和裁剪
-          photoLayoutService.initializeWithImage(image, selectedPhotoType);
-          
-          // 生成排版
-          const { canvas, count } = photoLayoutService.calculateOptimalLayout(
-            selectedContainerType,
-            color
-          );
-          
-          const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
-          setPhotoCount(count);
-          
-          setState(prev => ({
-            ...prev,
-            processedImageUrl,
-            isProcessing: false,
-            error: null
-          }));
-
-          toast.success(`排版完成，共 ${count} 张照片`, {
-            id: loadingToast
-          });
-        } catch (error) {
-          console.error('Layout calculation error:', error);
-          setState(prev => ({
-            ...prev,
-            error: '排版计算失败，请检查照片尺寸是否合适',
-            isProcessing: false
-          }));
-          toast.error('排版计算失败，请检查照片尺寸是否合适', {
-            id: loadingToast
-          });
-        }
-      })();
+    // 如果之前已有排版结果，则调用 handleGenerateLayout 重新生成
+    if (hadProcessedImage) {
+      setTimeout(() => {
+        // 直接将新颜色传递给 handleGenerateLayout
+        handleGenerateLayout({ newLineColor: color });
+      }, 0);
     } else {
-      // 如果没有排版结果，只更新颜色
-      setState(prev => ({
-        ...prev,
-        lineColor: color
-      }));
+      toast.success('分割线颜色已选择');
     }
   };
 
@@ -466,10 +413,12 @@ function App() {
     }
   };
 
-  const handleGenerateLayout = async () => {
-    const { selectedPhotoType, lineColor, hasTransparentBackground, selectedBackground } = state;
+  const handleGenerateLayout = async (options?: { newLineColor?: string }) => {
+    // 优先使用传入的颜色，否则使用 state 中的颜色
+    const colorToUse = options?.newLineColor ?? state.lineColor;
+    const { selectedPhotoType, hasTransparentBackground, selectedBackground } = state; // 保留这里的 background 读取，以备将来可能需要
     const selectedContainerType = getCurrentContainerType();
-    
+
     if (!selectedPhotoType || !selectedContainerType) {
       toast.error('请选择照片类型和打印尺寸');
       return;
@@ -480,21 +429,27 @@ function App() {
       toast.error('请先上传并裁剪照片');
       return;
     }
+
+    // 如果不是由颜色改变触发的（即 options 为空或没有 newLineColor），且状态不是 isProcessing，则设置
+    // 如果是由颜色改变触发的，isProcessing 已经在 handleColorChange 中设置了
+    if (!options?.newLineColor && !state.isProcessing) {
+      setState(prev => ({ ...prev, isProcessing: true, error: null }));
+    }
     
-    setState(prev => ({ ...prev, isProcessing: true, error: null }));
     const loadingToast = toast.loading('正在生成排版...');
-    
+
     try {
-      // 生成排版
+      // 生成排版 - 使用 colorToUse
       const { canvas, count } = photoLayoutService.calculateOptimalLayout(
         selectedContainerType,
-        lineColor,
-        hasTransparentBackground && selectedBackground ? selectedBackground : undefined
+        colorToUse, // 使用正确的颜色
+        // 传递选中的背景给 layout service，让 service 决定如何处理照片背景
+        hasTransparentBackground && selectedBackground ? selectedBackground : undefined 
       );
-      
+
       const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
       setPhotoCount(count);
-      
+
       setState(prev => ({
         ...prev,
         processedImageUrl,
@@ -530,6 +485,11 @@ function App() {
       
       toast.success('照片已开始下载');
     }
+  };
+
+  // 这个函数是专门给按钮点击用的，它不接受参数
+  const handleGenerateButtonClick = () => {
+    handleGenerateLayout(); // 调用时不传递参数
   };
 
   return (
@@ -640,7 +600,7 @@ function App() {
                   </div>
                   
                   <button
-                    onClick={handleGenerateLayout}
+                    onClick={handleGenerateButtonClick}
                     disabled={state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType}
                     className={`w-full py-3 px-4 rounded-lg font-medium transition-colors
                       ${state.isProcessing || !state.selectedPhotoType || !state.selectedContainerType
