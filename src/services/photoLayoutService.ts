@@ -1,7 +1,12 @@
 import { PhotoType, ContainerType, BackgroundOption } from '../types/PhotoType';
 
 export class PhotoLayoutService {
-  private pxPerCm = 118.11; // 300dpi = 118.11px/cm
+  // 定义常量
+  private readonly CM_PER_INCH = 2.54;
+  private readonly DPI = 300;
+  
+  // 计算 pxPerCm
+  private readonly pxPerCm = Math.floor(this.DPI / this.CM_PER_INCH);
   
   // 存储裁剪后的图片数据
   private croppedImageData: ImageData | null = null;
