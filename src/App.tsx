@@ -7,7 +7,7 @@ import { Header } from './components/Header';
 import { Footer } from './components/Footer';
 import { ImageCropper } from './components/ImageCropper';
 import { PhotoType, ContainerType, AppState, BackgroundOption } from './types/PhotoType';
-import { Image as ImageIcon, Download, Loader2, RotateCw } from 'lucide-react';
+import { Image as ImageIcon, Download, Loader2, RotateCw, Printer } from 'lucide-react';
 import { PhotoLayoutService } from './services/photoLayoutService';
 import { Toaster, toast } from 'react-hot-toast';
 
@@ -483,6 +483,59 @@ function App() {
     }
   };
 
+  const handlePrint = () => {
+    if (state.processedImageUrl) {
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        toast.error('请允许浏览器打开新窗口');
+        return;
+      }
+
+      printWindow.document.write(`
+        <html>
+          <head>
+            <title>打印证件照</title>
+            <style>
+              body {
+                margin: 0;
+                padding: 0;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                min-height: 100vh;
+              }
+              img {
+                max-width: 100%;
+                height: auto;
+              }
+              @media print {
+                @page {
+                  margin: 0;
+                }
+                body {
+                  margin: 0;
+                }
+              }
+            </style>
+          </head>
+          <body>
+            <img src="${state.processedImageUrl}" alt="证件照打印" />
+            <script>
+              window.onload = () => {
+                setTimeout(() => {
+                  window.print();
+                  setTimeout(() => window.close(), 100);
+                }, 250);
+              };
+            </script>
+          </body>
+        </html>
+      `);
+
+      toast.success('正在打开打印预览');
+    }
+  };
+
   // 这个函数是专门给按钮点击用的，它不接受参数
   const handleGenerateButtonClick = () => {
     handleGenerateLayout(); // 调用时不传递参数
@@ -618,13 +671,22 @@ function App() {
                   <div className="border rounded-lg p-4">
                     <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-medium text-gray-900">排版结果 ({photoCount} 张证件照)</h3>
-                      <button
-                        onClick={handleDownload}
-                        className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
-                      >
-                        <Download className="w-4 h-4 mr-2" />
-                        下载
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handlePrint}
+                          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-lg hover:bg-blue-600 transition-colors"
+                        >
+                          <Printer className="w-4 h-4 mr-2" />
+                          打印
+                        </button>
+                        <button
+                          onClick={handleDownload}
+                          className="flex items-center px-4 py-2 text-sm font-medium text-white bg-green-500 rounded-lg hover:bg-green-600 transition-colors"
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          下载
+                        </button>
+                      </div>
                     </div>
                     <div className="flex justify-center items-center">
                       <img
