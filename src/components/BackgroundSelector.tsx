@@ -4,7 +4,7 @@ import { BackgroundOption } from '../types/PhotoType';
 interface BackgroundSelectorProps {
   options: BackgroundOption[];
   value: string | null;
-  onChange: (backgroundId: string) => void;
+  onChange: (value: string) => void;
   disabled?: boolean;
 }
 
@@ -21,24 +21,33 @@ export const BackgroundSelector: React.FC<BackgroundSelectorProps> = ({
   return (
     <div className="space-y-2">
       <label className="block text-sm font-medium text-gray-700">
-        选择照片背景颜色
+        选择背景颜色
       </label>
-      <div className="grid grid-cols-4 gap-2">
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {options.map((option) => (
           <button
             key={option.id}
-            type="button"
-            disabled={disabled}
             onClick={() => onChange(option.id)}
+            disabled={disabled}
             className={`
-              w-full h-12 rounded-md border-2 transition-all
-              ${value === option.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-gray-200'}
-              ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:border-blue-300'}
+              relative p-3 rounded-lg border transition-all duration-200
+              ${value === option.id 
+                ? 'border-blue-500 ring-2 ring-blue-200' 
+                : 'border-gray-200 hover:border-gray-300'
+              }
+              ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
             `}
-            style={{ backgroundColor: option.color }}
-            title={option.name}
           >
-            <span className="sr-only">{option.name}</span>
+            <div className="flex items-center space-x-3">
+              <div
+                className="w-6 h-6 rounded-full border border-gray-200"
+                style={{ backgroundColor: option.color }}
+              />
+              <div className="flex-1 text-left">
+                <div className="font-medium text-gray-900">{option.name}</div>
+                <div className="text-xs text-gray-500 mt-0.5">{option.description}</div>
+              </div>
+            </div>
           </button>
         ))}
       </div>

@@ -80,17 +80,26 @@ const PaperOrientationIcon: React.FC<{
 
 // 预设背景选项
 const backgroundOptions: BackgroundOption[] = [
-  { id: 'white', name: '白色', color: '#FFFFFF' },
-  { id: 'blue', name: '蓝色', color: '#87CEEB' },
-  { id: 'red', name: '红色', color: '#FFCCCB' },
-  { id: 'gray', name: '灰色', color: '#D3D3D3' },
-  { id: 'beige', name: '米色', color: '#F5F5DC' },
-  { id: 'lightblue', name: '淡蓝', color: '#ADD8E6' },
-  { id: 'green', name: '绿色', color: '#90EE90' },
-  { id: 'pink', name: '粉色', color: '#FFC0CB' }
+  { id: 'white', name: '标准白色', color: '#FFFFFF', description: '身份证、护照、签证等证件照' },
+  { id: 'deep-blue', name: '深蓝色', color: '#438EDB', description: '毕业证、工作证、人事档案' },
+  { id: 'light-blue', name: '浅蓝色', color: '#00BFF3', description: '学历证书、社保照片' },
+  { id: 'red', name: '正红色', color: '#FF0000', description: '结婚证、保险单、医保卡' }
 ];
 
 function App() {
+  // 添加 Google Fonts
+  useEffect(() => {
+    const googleFontsUrl = 'https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap';
+    const link = document.createElement('link');
+    link.href = googleFontsUrl;
+    link.rel = 'stylesheet';
+    document.head.appendChild(link);
+    
+    return () => {
+      document.head.removeChild(link);
+    };
+  }, []);
+
   const [state, setState] = useState<AppState>({
     selectedPhotoType: null,
     selectedContainerType: null,
@@ -223,12 +232,45 @@ function App() {
   
   // 处理裁剪完成
   const handleCropComplete = (croppedImageUrl: string) => {
-    setState(prev => ({
-      ...prev,
-      previewUrl: croppedImageUrl,
-      croppedImageUrl,
-      showCropper: false
-    }));
+    const { hasTransparentBackground, selectedBackground } = state;
+    // 如果有选择背景色且图片有透明背景，立即应用背景色
+    if (hasTransparentBackground && selectedBackground?.color) {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        
+        if (ctx) {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          
+          // 填充背景色（已确保 selectedBackground 不为 null）
+          ctx.fillStyle = selectedBackground.color;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+          
+          // 在背景上绘制裁剪后的图片
+          ctx.drawImage(img, 0, 0);
+          
+          // 更新状态
+          setState(prev => ({
+            ...prev,
+            previewUrl: canvas.toDataURL('image/png'),
+            croppedImageUrl: croppedImageUrl,
+            showCropper: false
+          }));
+        }
+      };
+      img.src = croppedImageUrl;
+    } else {
+      // 如果没有透明背景或没有选择背景色，直接更新状态
+      setState(prev => ({
+        ...prev,
+        previewUrl: croppedImageUrl,
+        croppedImageUrl,
+        showCropper: false
+      }));
+    }
+    
     toast.success('照片裁剪成功');
   };
   
@@ -364,11 +406,45 @@ function App() {
 
   const handleBackgroundChange = (backgroundId: string) => {
     const selectedBackground = backgroundOptions.find(bg => bg.id === backgroundId) || null;
-    setState(prev => ({
-      ...prev,
-      selectedBackground,
-      processedImageUrl: null // 清除之前的排版结果，需要重新生成
-    }));
+    
+    // 更新状态
+    setState(prev => {
+      const newState = {
+        ...prev,
+        selectedBackground
+      };
+
+      // 如果有预览图片且有透明背景，立即应用新背景色
+      if (prev.previewUrl && prev.hasTransparentBackground) {
+        const img = new Image();
+        img.onload = () => {
+          const canvas = document.createElement('canvas');
+          const ctx = canvas.getContext('2d', { willReadFrequently: true });
+          
+          if (ctx) {
+            canvas.width = img.width;
+            canvas.height = img.height;
+            
+            // 填充背景色
+            ctx.fillStyle = selectedBackground?.color || '#FFFFFF';
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            
+            // 在背景上绘制图片
+            ctx.drawImage(img, 0, 0);
+            
+            // 更新预览URL
+            const newPreviewUrl = canvas.toDataURL('image/png');
+            setState(currentState => ({
+              ...currentState,
+              previewUrl: newPreviewUrl
+            }));
+          }
+        };
+        img.src = prev.originalImageUrl || prev.previewUrl;
+      }
+
+      return newState;
+    });
     
     if (selectedBackground) {
       toast.success(`已选择${selectedBackground.name}背景`);
@@ -404,7 +480,7 @@ function App() {
       
       try {
         // 如果有透明背景且选择了背景颜色，则传入背景选项
-        const background = hasTransparentBackground ? selectedBackground : null;
+        const background = hasTransparentBackground ? selectedBackground ?? undefined : undefined;
         
         const { canvas, count } = photoLayoutService.calculateOptimalLayout(
           image,

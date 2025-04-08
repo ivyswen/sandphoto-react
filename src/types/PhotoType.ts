@@ -17,6 +17,7 @@ export interface BackgroundOption {
   id: string;
   name: string;
   color: string;
+  description: string;
 }
 
 export interface AppState {

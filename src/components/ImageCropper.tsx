@@ -47,16 +47,25 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
     if (!imgRef.current || !completedCrop) return;
 
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     if (!ctx) return;
 
     const image = imgRef.current;
     const scaleX = image.naturalWidth / image.width;
     const scaleY = image.naturalHeight / image.height;
 
+    // 设置画布尺寸
     canvas.width = completedCrop.width * scaleX;
     canvas.height = completedCrop.height * scaleY;
 
+    // 清除画布并设置为透明
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // 保持图片原始格式
+    const isPNG = image.src.toLowerCase().includes('.png') || 
+                 image.src.toLowerCase().includes('image/png');
+
+    // 绘制裁剪的图片
     ctx.drawImage(
       image,
       completedCrop.x * scaleX,
@@ -69,7 +78,12 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
       completedCrop.height * scaleY
     );
 
-    const croppedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
+    // 根据原始图片格式选择输出格式
+    const croppedImageUrl = canvas.toDataURL(
+      isPNG ? 'image/png' : 'image/jpeg',
+      1.0
+    );
+    
     onCropComplete(croppedImageUrl);
   };
 
@@ -86,7 +100,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           </button>
         </div>
         
-        <div className="flex-grow overflow-auto p-4 flex items-center justify-center">
+        <div className="flex-grow overflow-auto p-4 flex items-center justify-center bg-[#f0f0f0]">
           <ReactCrop
             crop={crop}
             onChange={(c) => setCrop(c)}
@@ -100,6 +114,7 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
               alt="裁剪图片"
               onLoad={onImageLoad}
               className="max-h-[70vh] max-w-full"
+              style={{ backgroundColor: 'transparent' }}
             />
           </ReactCrop>
         </div>

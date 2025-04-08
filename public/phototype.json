@@ -1,6 +1,62 @@
 {
   "photoTypes": [
     {
+      "id": "inch_1",
+      "name": "1寸照片",
+      "widthCm": 2.5,
+      "heightCm": 3.5,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_large",
+      "name": "大一寸照片",
+      "widthCm": 3.3,
+      "heightCm": 4.8,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_small",
+      "name": "小一寸照片",
+      "widthCm": 2.2,
+      "heightCm": 3.2,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_color_large",
+      "name": "彩色大一寸照片",
+      "widthCm": 4.0,
+      "heightCm": 5.5,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_1_color_small",
+      "name": "彩色小一寸照片",
+      "widthCm": 2.7,
+      "heightCm": 3.8,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2",
+      "name": "2寸照片",
+      "widthCm": 3.8,
+      "heightCm": 5.1,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2_large",
+      "name": "大二寸照片",
+      "widthCm": 3.5,
+      "heightCm": 5.0,
+      "category": "证件照"
+    },
+    {
+      "id": "inch_2_small",
+      "name": "小二寸照片",
+      "widthCm": 3.5,
+      "heightCm": 4.5,
+      "category": "证件照"
+    },
+    {
       "id": "passport_china",
       "name": "中国护照照片",
       "widthCm": 3.3,
@@ -96,62 +152,6 @@
       "name": "居住证照片",
       "widthCm": 2.6,
       "heightCm": 3.2,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_1",
-      "name": "1寸照片",
-      "widthCm": 2.5,
-      "heightCm": 3.5,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_1_large",
-      "name": "大一寸照片",
-      "widthCm": 3.3,
-      "heightCm": 4.8,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_1_small",
-      "name": "小一寸照片",
-      "widthCm": 2.2,
-      "heightCm": 3.2,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_1_color_large",
-      "name": "彩色大一寸照片",
-      "widthCm": 4.0,
-      "heightCm": 5.5,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_1_color_small",
-      "name": "彩色小一寸照片",
-      "widthCm": 2.7,
-      "heightCm": 3.8,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_2",
-      "name": "2寸照片",
-      "widthCm": 3.8,
-      "heightCm": 5.1,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_2_large",
-      "name": "大二寸照片",
-      "widthCm": 3.5,
-      "heightCm": 5.0,
-      "category": "证件照"
-    },
-    {
-      "id": "inch_2_small",
-      "name": "小二寸照片",
-      "widthCm": 3.5,
-      "heightCm": 4.5,
       "category": "证件照"
     },
     {

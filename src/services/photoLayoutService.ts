@@ -75,7 +75,7 @@ export class PhotoLayoutService {
     background?: BackgroundOption
   ): { canvas: HTMLCanvasElement; count: number } {
     const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { willReadFrequently: true });
     
     if (!ctx) {
       throw new Error('Failed to get canvas context');
@@ -132,7 +132,7 @@ export class PhotoLayoutService {
         
         // 创建临时画布用于裁剪和缩放照片
         const tempCanvas = document.createElement('canvas');
-        const tempCtx = tempCanvas.getContext('2d');
+        const tempCtx = tempCanvas.getContext('2d', { willReadFrequently: true });
         if (!tempCtx) {
           throw new Error('Failed to get temporary canvas context');
         }
@@ -141,9 +141,17 @@ export class PhotoLayoutService {
         tempCanvas.width = targetWidthPx;
         tempCanvas.height = targetHeightPx;
         
-        // 先设置并填充背景颜色
-        tempCtx.fillStyle = background ? background.color : 'white';
-        tempCtx.fillRect(0, 0, targetWidthPx, targetHeightPx);
+        // 清除临时画布
+        tempCtx.clearRect(0, 0, targetWidthPx, targetHeightPx);
+        
+        // 如果指定了背景颜色，先填充背景
+        if (background) {
+          tempCtx.fillStyle = background.color;
+          tempCtx.fillRect(0, 0, targetWidthPx, targetHeightPx);
+          
+          // 设置混合模式，确保透明部分显示背景色
+          tempCtx.globalCompositeOperation = 'source-atop';
+        }
         
         // 计算源图像的裁剪区域，保持宽高比
         const sourceX = 0;
@@ -151,13 +159,14 @@ export class PhotoLayoutService {
         const sourceWidth = sourceImage.width;
         const sourceHeight = sourceImage.height;
         
-        // 在背景上绘制照片
-        tempCtx.globalCompositeOperation = 'source-over';
+        // 绘制照片
         tempCtx.drawImage(
           sourceImage,
           sourceX, sourceY, sourceWidth, sourceHeight,
           0, 0, targetWidthPx, targetHeightPx
         );
+        
+        // 重置混合模式
         tempCtx.globalCompositeOperation = 'source-over';
         
         // 将临时画布的内容绘制到主画布

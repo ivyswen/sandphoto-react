@@ -1,3 +1,29 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Noto Sans SC', system-ui, -apple-system, sans-serif;
+  }
+  
+  /* 针对不同字重的文本应用不同的字体权重 */
+  .font-normal {
+    font-weight: 400;
+  }
+  
+  .font-medium {
+    font-weight: 500;
+  }
+  
+  .font-bold {
+    font-weight: 700;
+  }
+}
+
+/* 优化字体渲染 */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
