@@ -4,10 +4,7 @@ export class PhotoLayoutService {
   // 定义常量
   private readonly CM_PER_INCH = 2.54;
   private readonly DPI = 300;
-  
-  // 计算 pxPerCm
-  private readonly pxPerCm = Math.floor(this.DPI / this.CM_PER_INCH);
-  
+   
   // 存储裁剪后的图片数据
   private croppedImageData: ImageData | null = null;
   
@@ -49,25 +46,49 @@ export class PhotoLayoutService {
     return this.croppedImageData !== null;
   }
 
+  // 从厘米转换为像素
+  private getPixelFromCM(value: number): number {
+    const result = value * this.DPI / this.CM_PER_INCH;
+    return Math.floor(result);
+  }
+
+  // 设置目标尺寸（单张照片的尺寸）
+  private setTargetSize(widthCm: number, heightCm: number): void {
+    this.targetSize = {
+      width: this.getPixelFromCM(widthCm),
+      height: this.getPixelFromCM(heightCm)
+    };
+  }
+
+  // 从PhotoType设置目标尺寸
+  private setTargetSizeFromPhotoType(photoType: PhotoType): void {
+    this.setTargetSize(photoType.widthCm, photoType.heightCm);
+  }
+
+  // 计算容器尺寸（相纸尺寸）
+  private getContainerSize(widthCm: number, heightCm: number): { width: number; height: number } {
+    return {
+      width: this.getPixelFromCM(widthCm),
+      height: this.getPixelFromCM(heightCm)
+    };
+  }
+
   // 当用户上传图片时调用，创建初始裁剪
   initializeWithImage(
     sourceImage: HTMLImageElement,
     targetType: PhotoType
   ): void {
-    // 计算目标尺寸（像素）
-    const targetWidthPx = targetType.widthCm * this.pxPerCm;
-    const targetHeightPx = targetType.heightCm * this.pxPerCm;
-    
-    // 保存目标尺寸
-    this.targetSize = {
-      width: targetWidthPx,
-      height: targetHeightPx
-    };
+    // 使用新方法设置目标尺寸
+    this.setTargetSizeFromPhotoType(targetType);
+
+    if (!this.targetSize) {
+      throw new Error('Failed to set target size');
+    }
 
     // 创建临时画布进行裁剪
     const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = targetWidthPx;
-    tempCanvas.height = targetHeightPx;
+    tempCanvas.width = this.targetSize.width;
+    tempCanvas.height = this.targetSize.height;
     
     const tempCtx = tempCanvas.getContext('2d', { 
       willReadFrequently: true,
@@ -79,11 +100,11 @@ export class PhotoLayoutService {
     }
 
     // 清空画布
-    tempCtx.clearRect(0, 0, targetWidthPx, targetHeightPx);
+    tempCtx.clearRect(0, 0, this.targetSize.width, this.targetSize.height);
 
     // 计算裁剪区域（居中裁剪）
     const sourceAspectRatio = sourceImage.width / sourceImage.height;
-    const targetAspectRatio = targetWidthPx / targetHeightPx;
+    const targetAspectRatio = this.targetSize.width / this.targetSize.height;
     
     let sx = 0, sy = 0, sWidth = sourceImage.width, sHeight = sourceImage.height;
     
@@ -101,11 +122,11 @@ export class PhotoLayoutService {
     tempCtx.drawImage(
       sourceImage,
       sx, sy, sWidth, sHeight,
-      0, 0, targetWidthPx, targetHeightPx
+      0, 0, this.targetSize.width, this.targetSize.height
     );
 
     // 保存裁剪后的图片数据
-    this.croppedImageData = tempCtx.getImageData(0, 0, targetWidthPx, targetHeightPx);
+    this.croppedImageData = tempCtx.getImageData(0, 0, this.targetSize.width, this.targetSize.height);
     this.sourceImage = sourceImage;
   }
 
@@ -257,26 +278,37 @@ export class PhotoLayoutService {
       return photosPerRow * photosPerColumn;
     };
 
+    // 使用新方法计算容器尺寸
+    const normalContainer = this.getContainerSize(
+      containerType.widthCm,
+      containerType.heightCm
+    );
+    
+    const rotatedContainer = this.getContainerSize(
+      containerType.heightCm,
+      containerType.widthCm
+    );
+
     // 计算常规方向的数量
     const normalCount = calculatePhotoCount(
-      containerType.widthCm * this.pxPerCm,
-      containerType.heightCm * this.pxPerCm
+      normalContainer.width,
+      normalContainer.height
     );
 
     // 计算旋转后的数量
     const rotatedCount = calculatePhotoCount(
-      containerType.heightCm * this.pxPerCm,
-      containerType.widthCm * this.pxPerCm
+      rotatedContainer.width,
+      rotatedContainer.height
     );
 
     // 选择照片数量更多的方向
     let containerWidthPx, containerHeightPx;
     if (rotatedCount > normalCount) {
-      containerWidthPx = containerType.heightCm * this.pxPerCm;
-      containerHeightPx = containerType.widthCm * this.pxPerCm;
+      containerWidthPx = rotatedContainer.width;
+      containerHeightPx = rotatedContainer.height;
     } else {
-      containerWidthPx = containerType.widthCm * this.pxPerCm;
-      containerHeightPx = containerType.heightCm * this.pxPerCm;
+      containerWidthPx = normalContainer.width;
+      containerHeightPx = normalContainer.height;
     }
 
     const photoWidthPx = this.targetSize.width;
