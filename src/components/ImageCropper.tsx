@@ -1,13 +1,69 @@
-import React, { useState, useRef } from 'react';
-import ReactCrop, { Crop, PixelCrop, centerCrop, makeAspectCrop } from 'react-image-crop';
-import 'react-image-crop/dist/ReactCrop.css';
+import React, { useState, useCallback } from 'react';
+import Cropper from 'react-easy-crop';
 import { X, Check } from 'lucide-react';
 
 interface ImageCropperProps {
   imageUrl: string;
-  aspectRatio: number; // 宽度/高度
-  onCropComplete: (croppedImageUrl: string) => void;
+  aspectRatio: number;
+  onCropComplete: (croppedArea: any, croppedAreaPixels: any) => void;
   onCancel: () => void;
+}
+
+// 创建图片对象
+const createImage = (url: string): Promise<HTMLImageElement> =>
+  new Promise((resolve, reject) => {
+    const image = new Image();
+    image.addEventListener('load', () => resolve(image));
+    image.addEventListener('error', error => reject(error));
+    image.src = url;
+  });
+
+// 获取图片类型
+const getImageType = (url: string): string => {
+  if (url.toLowerCase().includes('.png') || url.toLowerCase().includes('image/png')) {
+    return 'image/png';
+  }
+  return 'image/jpeg';
+};
+
+// 获取裁剪后的图片
+async function getCroppedImg(
+  imageSrc: string,
+  pixelCrop: { x: number; y: number; width: number; height: number }
+): Promise<string> {
+  const image = await createImage(imageSrc);
+  const canvas = document.createElement('canvas');
+  const ctx = canvas.getContext('2d', { alpha: true });
+
+  if (!ctx) {
+    throw new Error('No 2d context');
+  }
+
+  // 设置画布尺寸
+  canvas.width = pixelCrop.width;
+  canvas.height = pixelCrop.height;
+
+  // 清除画布并确保背景透明
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // 绘制裁剪的图片
+  ctx.drawImage(
+    image,
+    pixelCrop.x,
+    pixelCrop.y,
+    pixelCrop.width,
+    pixelCrop.height,
+    0,
+    0,
+    pixelCrop.width,
+    pixelCrop.height
+  );
+
+  // 获取图片类型
+  const imageType = getImageType(imageSrc);
+  
+  // 返回 base64 格式的图片数据
+  return canvas.toDataURL(imageType, 1.0);
 }
 
 export const ImageCropper: React.FC<ImageCropperProps> = ({
@@ -16,80 +72,28 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
   onCropComplete,
   onCancel
 }) => {
-  const [crop, setCrop] = useState<Crop>();
-  const [completedCrop, setCompletedCrop] = useState<PixelCrop>();
-  const imgRef = useRef<HTMLImageElement>(null);
+  const [crop, setCrop] = useState({ x: 0, y: 0 });
+  const [zoom, setZoom] = useState(1);
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null);
 
-  // 当图片加载完成时，设置初始裁剪区域
-  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
-    const { width, height } = e.currentTarget;
-    
-    // 创建一个居中的裁剪区域，保持指定的宽高比
-    const initialCrop = centerCrop(
-      makeAspectCrop(
-        {
-          unit: '%',
-          width: 90,
-        },
-        aspectRatio,
-        width,
-        height
-      ),
-      width,
-      height
-    );
-    
-    setCrop(initialCrop);
-  };
+  const handleCropComplete = useCallback(async (_: any, croppedAreaPixels: any) => {
+    setCroppedAreaPixels(croppedAreaPixels);
+  }, []);
 
-  // 生成裁剪后的图片
-  const handleCropComplete = () => {
-    if (!imgRef.current || !completedCrop) return;
-
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d', { willReadFrequently: true });
-    if (!ctx) return;
-
-    const image = imgRef.current;
-    const scaleX = image.naturalWidth / image.width;
-    const scaleY = image.naturalHeight / image.height;
-
-    // 设置画布尺寸
-    canvas.width = completedCrop.width * scaleX;
-    canvas.height = completedCrop.height * scaleY;
-
-    // 清除画布并设置为透明
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
-
-    // 保持图片原始格式
-    const isPNG = image.src.toLowerCase().includes('.png') || 
-                 image.src.toLowerCase().includes('image/png');
-
-    // 绘制裁剪的图片
-    ctx.drawImage(
-      image,
-      completedCrop.x * scaleX,
-      completedCrop.y * scaleY,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY,
-      0,
-      0,
-      completedCrop.width * scaleX,
-      completedCrop.height * scaleY
-    );
-
-    // 根据原始图片格式选择输出格式
-    const croppedImageUrl = canvas.toDataURL(
-      isPNG ? 'image/png' : 'image/jpeg',
-      1.0
-    );
-    
-    onCropComplete(croppedImageUrl);
-  };
+  const handleSave = useCallback(async () => {
+    try {
+      if (croppedAreaPixels) {
+        const croppedImage = await getCroppedImg(imageUrl, croppedAreaPixels);
+        onCropComplete(croppedImage, croppedAreaPixels);
+      }
+    } catch (e) {
+      console.error('Error cropping image:', e);
+    }
+  }, [croppedAreaPixels, imageUrl, onCropComplete]);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden">
+      <div className="bg-white rounded-lg w-full max-w-4xl overflow-hidden flex flex-col">
         <div className="p-4 border-b flex justify-between items-center">
           <h2 className="text-xl font-semibold">裁剪照片</h2>
           <button 
@@ -100,39 +104,49 @@ export const ImageCropper: React.FC<ImageCropperProps> = ({
           </button>
         </div>
         
-        <div className="flex-grow overflow-auto p-4 flex items-center justify-center bg-[#f0f0f0]">
-          <ReactCrop
+        <div className="flex-grow relative h-[60vh]">
+          <Cropper
+            image={imageUrl}
             crop={crop}
-            onChange={(c) => setCrop(c)}
-            onComplete={(c) => setCompletedCrop(c)}
+            zoom={zoom}
             aspect={aspectRatio}
-            className="max-h-[70vh] max-w-full"
-          >
-            <img
-              ref={imgRef}
-              src={imageUrl}
-              alt="裁剪图片"
-              onLoad={onImageLoad}
-              className="max-h-[70vh] max-w-full"
-              style={{ backgroundColor: 'transparent' }}
-            />
-          </ReactCrop>
+            onCropChange={setCrop}
+            onCropComplete={handleCropComplete}
+            onZoomChange={setZoom}
+            objectFit="contain"
+          />
         </div>
         
-        <div className="p-4 border-t flex justify-end space-x-2">
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-800 font-medium transition-colors"
-          >
-            取消
-          </button>
-          <button
-            onClick={handleCropComplete}
-            className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-medium transition-colors flex items-center"
-          >
-            <Check className="w-4 h-4 mr-2" />
-            确认裁剪
-          </button>
+        <div className="p-4 border-t flex justify-between items-center">
+          <div className="flex items-center space-x-4">
+            <label className="text-sm text-gray-600">缩放:</label>
+            <input
+              type="range"
+              value={zoom}
+              min={1}
+              max={3}
+              step={0.1}
+              aria-labelledby="Zoom"
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="w-32"
+            />
+          </div>
+          
+          <div className="flex space-x-2">
+            <button
+              onClick={onCancel}
+              className="px-4 py-2 bg-gray-100 hover:bg-gray-200 rounded-lg text-gray-800 font-medium transition-colors"
+            >
+              取消
+            </button>
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-blue-500 hover:bg-blue-600 rounded-lg text-white font-medium transition-colors flex items-center"
+            >
+              <Check className="w-4 h-4 mr-2" />
+              确认裁剪
+            </button>
+          </div>
         </div>
       </div>
     </div>

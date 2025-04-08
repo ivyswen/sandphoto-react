@@ -121,7 +121,7 @@ function App() {
   const [containerTypes, setContainerTypes] = useState<ContainerType[]>([]);
   const [photoCount, setPhotoCount] = useState<number>(0);
 
-  const photoLayoutService = new PhotoLayoutService();
+  const [photoLayoutService] = useState(() => new PhotoLayoutService());
 
   const [shouldRegenerate, setShouldRegenerate] = useState(false);
 
@@ -161,7 +161,8 @@ function App() {
         originalImageUrl: previewUrl,
         processedImageUrl: null,
         error: null,
-        hasTransparentBackground: false // 重置透明背景状态
+        hasTransparentBackground: false,
+        showCropper: false // Reset cropper state
       }));
       
       // 检查图片是否有透明背景（仅PNG格式）
@@ -178,27 +179,38 @@ function App() {
             if (hasTransparent) {
               toast.success('检测到透明背景，您可以选择预设背景颜色');
             }
+
+            // 如果已选择了照片类型，初始化 PhotoLayoutService
+            if (state.selectedPhotoType) {
+              photoLayoutService.initializeWithImage(img, state.selectedPhotoType);
+              // 检查是否需要显示裁剪器
+              checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+            }
           } catch (error) {
             console.error('检测透明背景失败:', error);
-          }
-          
-          // 如果已选择了照片类型，检查图片比例是否需要裁剪
-          if (state.selectedPhotoType) {
-            checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+            toast.error('检测透明背景失败');
           }
         };
         img.src = previewUrl;
       } else {
-        // 如果不是PNG，直接检查比例
-        if (state.selectedPhotoType) {
-          checkImageAspectRatio(previewUrl, state.selectedPhotoType);
-        }
+        // 如果不是PNG，加载图片并初始化 PhotoLayoutService
+        const img = new Image();
+        img.onload = () => {
+          if (state.selectedPhotoType) {
+            photoLayoutService.initializeWithImage(img, state.selectedPhotoType);
+            // 检查是否需要显示裁剪器
+            checkImageAspectRatio(previewUrl, state.selectedPhotoType);
+          }
+        };
+        img.src = previewUrl;
       }
     }
   };
   
   // 检查图片比例是否与所选证件照比例匹配
-  const checkImageAspectRatio = (imageUrl: string, photoType: PhotoType) => {
+  const checkImageAspectRatio = (imageUrl: string | null, photoType: PhotoType) => {
+    if (!imageUrl) return;
+    
     const img = new Image();
     img.onload = () => {
       const sourceAspectRatio = img.width / img.height;
@@ -221,57 +233,71 @@ function App() {
     setState(prev => ({
       ...prev,
       selectedPhotoType: selectedType || null,
-      processedImageUrl: null
+      processedImageUrl: null,
+      showCropper: false // Reset cropper state when type changes
     }));
     
-    // 如果已上传图片，检查是否需要裁剪
+    // 如果已上传图片，重新初始化 PhotoLayoutService 并检查是否需要裁剪
     if (state.originalImageUrl && selectedType) {
-      checkImageAspectRatio(state.originalImageUrl, selectedType);
+      const img = new Image();
+      img.onload = () => {
+        photoLayoutService.initializeWithImage(img, selectedType);
+        checkImageAspectRatio(state.originalImageUrl, selectedType);
+      };
+      img.src = state.originalImageUrl;
     }
   };
   
   // 处理裁剪完成
-  const handleCropComplete = (croppedImageUrl: string) => {
-    const { hasTransparentBackground, selectedBackground } = state;
-    // 如果有选择背景色且图片有透明背景，立即应用背景色
-    if (hasTransparentBackground && selectedBackground?.color) {
-      const img = new Image();
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
-        
-        if (ctx) {
-          canvas.width = img.width;
-          canvas.height = img.height;
-          
-          // 填充背景色（已确保 selectedBackground 不为 null）
-          ctx.fillStyle = selectedBackground.color;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // 在背景上绘制裁剪后的图片
-          ctx.drawImage(img, 0, 0);
-          
-          // 更新状态
-          setState(prev => ({
-            ...prev,
-            previewUrl: canvas.toDataURL('image/png'),
-            croppedImageUrl: croppedImageUrl,
-            showCropper: false
-          }));
-        }
+  const handleCropComplete = async (croppedArea: any, croppedAreaPixels: any) => {
+    if (!state.selectedPhotoType || !state.originalImageUrl) {
+      toast.error('请先选择照片类型并上传照片');
+      return;
+    }
+
+    setState(prev => ({
+      ...prev,
+      showCropper: false,
+      isProcessing: true
+    }));
+
+    try {
+      // 将裁剪参数转换为 PhotoLayoutService 需要的格式
+      const cropConfig = {
+        sx: croppedAreaPixels.x,
+        sy: croppedAreaPixels.y,
+        sWidth: croppedAreaPixels.width,
+        sHeight: croppedAreaPixels.height
       };
-      img.src = croppedImageUrl;
-    } else {
-      // 如果没有透明背景或没有选择背景色，直接更新状态
+
+      const sourceImage = photoLayoutService.getSourceImage();
+      if (!sourceImage) {
+        throw new Error('源图片不存在');
+      }
+
+      // 更新裁剪区域并获取预览图
+      const previewUrl = await photoLayoutService.updateCropArea(
+        cropConfig,
+        sourceImage
+      );
+
       setState(prev => ({
         ...prev,
-        previewUrl: croppedImageUrl,
-        croppedImageUrl,
-        showCropper: false
+        previewUrl,
+        selectedBackground: backgroundOptions[0], // 重置为白色背景
+        processedImageUrl: null,
+        isProcessing: false
+      }));
+
+      toast.success('照片裁剪完成');
+    } catch (error) {
+      console.error('裁剪照片失败:', error);
+      toast.error('裁剪照片失败');
+      setState(prev => ({
+        ...prev,
+        isProcessing: false
       }));
     }
-    
-    toast.success('照片裁剪成功');
   };
   
   // 取消裁剪
@@ -363,11 +389,14 @@ function App() {
       (async () => {
         try {
           const image = await loadImage();
+          
+          // 先初始化图片和裁剪
+          photoLayoutService.initializeWithImage(image, selectedPhotoType);
+          
+          // 生成排版
           const { canvas, count } = photoLayoutService.calculateOptimalLayout(
-            image,
-            selectedPhotoType,
             selectedContainerType,
-            color // 使用新的颜色值
+            color
           );
           
           const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
@@ -404,124 +433,86 @@ function App() {
     }
   };
 
-  const handleBackgroundChange = (backgroundId: string) => {
-    const selectedBackground = backgroundOptions.find(bg => bg.id === backgroundId) || null;
-    
-    // 更新状态
-    setState(prev => {
-      const newState = {
-        ...prev,
-        selectedBackground
-      };
+  // 处理背景色变化
+  const handleBackgroundChange = async (backgroundId: string) => {
+    const background = backgroundOptions.find(bg => bg.id === backgroundId);
+    if (!background) return;
 
-      // 如果有预览图片且有透明背景，立即应用新背景色
-      if (prev.previewUrl && prev.hasTransparentBackground) {
-        const img = new Image();
-        img.onload = () => {
-          const canvas = document.createElement('canvas');
-          const ctx = canvas.getContext('2d', { willReadFrequently: true });
-          
-          if (ctx) {
-            canvas.width = img.width;
-            canvas.height = img.height;
-            
-            // 填充背景色
-            ctx.fillStyle = selectedBackground?.color || '#FFFFFF';
-            ctx.fillRect(0, 0, canvas.width, canvas.height);
-            
-            // 在背景上绘制图片
-            ctx.drawImage(img, 0, 0);
-            
-            // 更新预览URL
-            const newPreviewUrl = canvas.toDataURL('image/png');
-            setState(currentState => ({
-              ...currentState,
-              previewUrl: newPreviewUrl
-            }));
-          }
-        };
-        img.src = prev.originalImageUrl || prev.previewUrl;
+    try {
+      // 检查是否有裁剪后的图片
+      if (!photoLayoutService.hasCroppedImage()) {
+        toast.error('请先上传并裁剪照片');
+        return;
       }
 
-      return newState;
-    });
-    
-    if (selectedBackground) {
-      toast.success(`已选择${selectedBackground.name}背景`);
+      setState(prev => ({ ...prev, isProcessing: true }));
+
+      // 更新预览图的背景色
+      const previewUrl = await photoLayoutService.updatePreviewBackground(background);
+
+      setState(prev => ({
+        ...prev,
+        previewUrl,
+        selectedBackground: background,
+        isProcessing: false,
+        processedImageUrl: null
+      }));
+
+      toast.success('背景颜色已更新');
+    } catch (error) {
+      console.error('切换背景失败:', error);
+      toast.error('切换背景失败，请确保已正确裁剪照片');
+      setState(prev => ({ ...prev, isProcessing: false }));
     }
   };
 
   const handleGenerateLayout = async () => {
-    const { selectedPhotoType, lineColor, uploadedImage, previewUrl, hasTransparentBackground, selectedBackground } = state;
+    const { selectedPhotoType, lineColor, hasTransparentBackground, selectedBackground } = state;
     const selectedContainerType = getCurrentContainerType();
     
-    if (!selectedPhotoType || !selectedContainerType || !uploadedImage || !previewUrl) {
-      toast.error('请选择照片类型、打印尺寸并上传照片');
-      setState(prev => ({
-        ...prev,
-        error: '请选择照片类型、打印尺寸并上传照片'
-      }));
+    if (!selectedPhotoType || !selectedContainerType) {
+      toast.error('请选择照片类型和打印尺寸');
+      return;
+    }
+
+    // 检查是否有裁剪后的图片
+    if (!photoLayoutService.hasCroppedImage()) {
+      toast.error('请先上传并裁剪照片');
       return;
     }
     
     setState(prev => ({ ...prev, isProcessing: true, error: null }));
-    
     const loadingToast = toast.loading('正在生成排版...');
     
     try {
-      const loadImage = () => new Promise<HTMLImageElement>((resolve, reject) => {
-        const img = document.createElement('img');
-        img.onload = () => resolve(img);
-        img.onerror = () => reject(new Error('图片加载失败'));
-        img.src = previewUrl;
-      });
-
-      const image = await loadImage();
+      // 生成排版
+      const { canvas, count } = photoLayoutService.calculateOptimalLayout(
+        selectedContainerType,
+        lineColor,
+        hasTransparentBackground && selectedBackground ? selectedBackground : undefined
+      );
       
-      try {
-        // 如果有透明背景且选择了背景颜色，则传入背景选项
-        const background = hasTransparentBackground ? selectedBackground ?? undefined : undefined;
-        
-        const { canvas, count } = photoLayoutService.calculateOptimalLayout(
-          image,
-          selectedPhotoType,
-          selectedContainerType,
-          lineColor,
-          background
-        );
-        
-        const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
-        setPhotoCount(count);
-        
-        setState(prev => ({
-          ...prev,
-          processedImageUrl,
-          isProcessing: false,
-          error: null
-        }));
-
-        toast.success(`排版完成，共 ${count} 张照片`, {
-          id: loadingToast
-        });
-      } catch (error) {
-        console.error('Layout calculation error:', error);
-        setState(prev => ({
-          ...prev,
-          error: '排版计算失败，请检查照片尺寸是否合适',
-          isProcessing: false
-        }));
-        toast.error('排版计算失败，请检查照片尺寸是否合适', {
-          id: loadingToast
-        });
-      }
-    } catch (error) {
-      console.error('Image processing error:', error);
+      const processedImageUrl = canvas.toDataURL('image/jpeg', 1.0);
+      setPhotoCount(count);
+      
       setState(prev => ({
         ...prev,
-        error: '图片处理失败，请确保上传了有效的图片文件',
+        processedImageUrl,
+        isProcessing: false,
+        error: null
+      }));
+
+      toast.success(`排版完成，共 ${count} 张照片`, {
+        id: loadingToast
+      });
+    } catch (error) {
+      console.error('Layout calculation error:', error);
+      setState(prev => ({
+        ...prev,
+        error: '排版计算失败，请检查照片尺寸是否合适',
         isProcessing: false
       }));
-      toast.error('图片处理失败，请确保上传了有效的图片文件', {
+      toast.error('排版计算失败，请检查照片尺寸是否合适', {
         id: loadingToast
       });
     }
